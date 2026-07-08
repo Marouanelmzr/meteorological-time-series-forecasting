@@ -1,0 +1,6 @@
+[core]
+    remote = origin
+['remote "storage"']
+    url = gdrive://1ngUyxQYLiy6F2fhAWcj29Ol4oaN4Dp2t
+['remote "origin"']
+    url = https://dagshub.com/Marouanelmzr/meteorological-time-series-forecasting.dvc
