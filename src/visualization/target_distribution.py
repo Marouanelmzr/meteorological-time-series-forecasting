@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import pandas as pd
 
 def plot_target_distribution(df):
     counts = df["has_gust"].value_counts().sort_index()
