@@ -1,0 +1,5 @@
+outs:
+- md5: ec9b629340a22d57b9741d291238458f
+  size: 34023932
+  hash: md5
+  path: Rafale_METAR.csv
