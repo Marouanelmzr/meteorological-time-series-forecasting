@@ -51,10 +51,6 @@ These two types of forecasting affect the dimentionality of the inputs, and can 
   >
   > Pressure levels are commonly used in meteorology because they provide a more consistent representation of atmospheric circulation than fixed altitudes.
 
-- A notable limitation of this dataset is that the upper-atmosphere variables are available only for the **meridional (V) component** of the wind. The corresponding **zonal (U) component** is missing.
-
-  > This represents a significant limitation because a complete wind vector requires both the **U** and **V** components. Without the zonal component, it is impossible to reconstruct the true wind magnitude or direction at these pressure levels. Consequently, any information derived from these variables provides only a partial description of the atmospheric wind field, potentially limiting the model's ability to exploit upper-air dynamics.
-
   - What is **AROME**, what is the difference between a **Numerical Weather Prediction (NWP)** model and a **Machine Learning (ML)** model, and why are AROME forecasts used as input features?
 
   > **AROME** is a high-resolution **Numerical Weather Prediction (NWP)** model developed by Météo-France. Unlike Machine Learning models, which learn statistical relationships from historical data, an NWP model predicts future atmospheric conditions by numerically solving the physical equations governing the atmosphere, including the conservation of momentum, mass, and energy.
@@ -64,3 +60,227 @@ These two types of forecasting affect the dimentionality of the inputs, and can 
   > In this project, AROME forecasts are used as input features because they provide valuable prior knowledge about the expected atmospheric state. Variables such as predicted wind, temperature, humidity, and wind gusts summarize complex physical interactions that would otherwise be difficult for the ML model to infer solely from historical observations.
   >
   > Rather than replacing the NWP model, the Machine Learning model complements it by learning the systematic biases and local effects that the numerical model may not fully capture. This hybrid approach often produces more accurate predictions than using either method independently.
+
+
+
+
+# Proposed Two-Stage Forecasting Architecture
+
+## Motivation
+
+Wind gust forecasting naturally consists of two different prediction problems:
+
+1. **Will a wind gust occur?** (event detection)
+2. **If a wind gust occurs, how strong will it be?** (magnitude estimation)
+
+These two questions are fundamentally different. The first is a **binary classification** problem, while the second is a **regression** problem that is only meaningful when a gust actually occurs.
+
+Instead of forcing a single model to learn both tasks simultaneously, we propose a **two-stage forecasting architecture**.
+
+---
+
+# Stage 1 — Gust Occurrence Classification
+
+The first model predicts whether a wind gust will occur.
+
+### Input
+
+The model receives a **sliding time window** containing the most recent meteorological observations and numerical weather prediction (NWP) variables.
+
+For example, if hourly observations are used and the window size is 24:
+
+```
+Hour t-23
+Hour t-22
+...
+Hour t-2
+Hour t-1
+Hour t
+```
+
+Each time step contains all available input features, such as:
+
+- AROME wind forecasts
+- Temperature
+- Pressure
+- Humidity
+- Wind components (u, v)
+- Station information
+- Temporal features (hour, month, season)
+- Any additional engineered variables
+
+The window length is a hyperparameter and may be 12, 24, 48 hours, etc.
+
+### Target
+
+The target is
+
+```
+has_gust ∈ {0,1}
+```
+
+where
+
+- **1** = a wind gust was observed in the METAR report.
+- **0** = no gust was observed.
+
+The ground truth comes exclusively from METAR observations.
+
+---
+
+# Sliding Window Construction
+
+Assume the dataset contains hourly observations.
+
+With a window size of 24 hours, each training sample is built as follows.
+
+Input:
+
+```
+Hours:
+t-23
+t-22
+...
+t
+```
+
+Target:
+
+```
+has_gust at hour t+1
+```
+
+The window then slides forward by one hour.
+
+Example:
+
+```
+Hours 00–23  → predict has_gust at 24
+Hours 01–24  → predict has_gust at 25
+Hours 02–25  → predict has_gust at 26
+...
+```
+
+This process generates one training sample for every hour in the dataset.
+
+---
+
+# Stage 2 — Conditional Gust Intensity Regression
+
+The second model predicts the gust intensity **only when a gust occurs**.
+
+This avoids mixing non-gust observations with gust observations during training.
+
+### Input
+
+The second model receives **exactly the same type of sliding window** as the first model.
+
+Example:
+
+```
+Hours:
+t-23
+...
+t
+```
+
+The input representation is identical.
+
+The only difference is that the training dataset is filtered.
+
+---
+
+# Training Dataset Construction
+
+The complete dataset first generates all possible sliding windows.
+
+Example:
+
+| Window | Target |
+|---------|---------|
+| W₁ | has_gust = 0 |
+| W₂ | has_gust = 0 |
+| W₃ | has_gust = 1 |
+| W₄ | has_gust = 0 |
+| W₅ | has_gust = 1 |
+
+For the classification model, **every window is used**.
+
+For the regression model, only windows where
+
+```
+has_gust = 1
+```
+
+are kept.
+
+The regression dataset therefore becomes:
+
+| Window | Gust Speed |
+|---------|------------|
+| W₃ | 18.6 m/s |
+| W₅ | 21.3 m/s |
+| ... | ... |
+
+Although these positive samples are separated in time, this is not an issue.
+
+Each sliding window is treated as an independent training example, which is standard practice in deep learning for time-series forecasting.
+
+---
+
+# Regression Target
+
+The regression model predicts
+
+```
+gust_speed
+```
+
+which corresponds to the actual gust speed measured in the METAR report.
+
+Unlike the original approach based on the `wind_final` variable, the regression model is trained **only on true gust observations**, preventing the model from learning a mixture of average wind speeds and gust speeds.
+
+---
+
+# Inference Pipeline
+
+During inference, prediction is performed sequentially.
+
+```
+Input Time Window
+        │
+        ▼
+Stage 1
+(Classification)
+        │
+        ├──────────────► No Gust
+        │
+        ▼
+Gust Detected
+        │
+        ▼
+Stage 2
+(Regression)
+        │
+        ▼
+Predicted Gust Speed
+```
+
+If Stage 1 predicts that no gust will occur, the pipeline stops.
+
+If a gust is predicted, the same input window is passed to the regression model to estimate the gust intensity.
+
+---
+
+# Advantages of the Proposed Architecture
+
+This architecture offers several advantages.
+
+- Separates event detection from magnitude estimation.
+- Avoids learning from heterogeneous targets.
+- Reduces noise caused by mixing average wind and gust observations.
+- Allows each model to specialize in a simpler task.
+- Naturally handles the rarity of wind gust events.
+- Produces a forecasting pipeline that better reflects the physical nature of wind gust generation.
+
+This two-stage formulation is therefore more consistent with both the meteorological definition of wind gusts and the statistical structure of the forecasting problem.
