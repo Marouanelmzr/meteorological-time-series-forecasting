@@ -79,7 +79,7 @@ Instead of forcing a single model to learn both tasks simultaneously, we propose
 
 ---
 
-# Stage 1 — Gust Occurrence Classification
+## Stage 1 — Gust Occurrence Classification
 
 The first model predicts whether a wind gust will occur.
 
@@ -126,9 +126,7 @@ where
 
 The ground truth comes exclusively from METAR observations.
 
----
-
-# Sliding Window Construction
+## Sliding Window Construction
 
 Assume the dataset contains hourly observations.
 
@@ -163,9 +161,7 @@ Hours 02–25  → predict has_gust at 26
 
 This process generates one training sample for every hour in the dataset.
 
----
-
-# Stage 2 — Conditional Gust Intensity Regression
+## Stage 2 — Conditional Gust Intensity Regression
 
 The second model predicts the gust intensity **only when a gust occurs**.
 
@@ -188,9 +184,8 @@ The input representation is identical.
 
 The only difference is that the training dataset is filtered.
 
----
 
-# Training Dataset Construction
+## Training Dataset Construction
 
 The complete dataset first generates all possible sliding windows.
 
@@ -226,9 +221,8 @@ Although these positive samples are separated in time, this is not an issue.
 
 Each sliding window is treated as an independent training example, which is standard practice in deep learning for time-series forecasting.
 
----
 
-# Regression Target
+## Regression Target
 
 The regression model predicts
 
@@ -238,41 +232,9 @@ gust_speed
 
 which corresponds to the actual gust speed measured in the METAR report.
 
-Unlike the original approach based on the `wind_final` variable, the regression model is trained **only on true gust observations**, preventing the model from learning a mixture of average wind speeds and gust speeds.
 
----
 
-# Inference Pipeline
-
-During inference, prediction is performed sequentially.
-
-```
-Input Time Window
-        │
-        ▼
-Stage 1
-(Classification)
-        │
-        ├──────────────► No Gust
-        │
-        ▼
-Gust Detected
-        │
-        ▼
-Stage 2
-(Regression)
-        │
-        ▼
-Predicted Gust Speed
-```
-
-If Stage 1 predicts that no gust will occur, the pipeline stops.
-
-If a gust is predicted, the same input window is passed to the regression model to estimate the gust intensity.
-
----
-
-# Advantages of the Proposed Architecture
+## Advantages of the Proposed Architecture
 
 This architecture offers several advantages.
 
