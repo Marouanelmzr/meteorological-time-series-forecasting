@@ -1,0 +1,53 @@
+============================================================
+1. validate_structure
+============================================================
+=== Report ===
+Lines read                          : 1140109
+Rejected (16 fields, missing date)  : 133
+Rejected (unexpected field count) : 8
+Issues with 17-field lines (station already dropped) : 6244
+Issues with 18-field lines (station dropped)       : 1133724
+Deduplicates             : 18154
+Lines kept in the output      : 1121814
+Output file                     : C:\Users\LCELIL\TSF_Internship\data\cleaned\Arome_structure_clean.csv
+Rejection log                        : C:\Users\LCELIL\TSF_Internship\data\cleaned\rejected_structure.tsv
+
+============================================================
+2. compute_reference_coordinates
+============================================================
+=== Report ===
+Lines read (total)              : 1140109
+Lines with 18 fields (with id)  : 1133724
+Distinct station IDs found      : 26
+Output file                       : C:\Users\LCELIL\TSF_Internship\data\cleaned\stations_reference.csv
+
+============================================================
+3. filter_by_distance
+============================================================
+Stations de reference chargees : 26
+... 200000 lines treated
+... 400000 lines treated
+... 600000 lines treated
+... 800000 lines treated
+... 1000000 lines treated
+
+=== Report filter_by_distance ===
+Lines read                        : 1121814
+Distance threshold                : 10.0 km
+Lines rejected (> threshold)       : 13370
+Lines kept                         : 1108444
+Output file                        : C:\Users\LCELIL\TSF_Internship\data\cleaned\Arome_filtered.csv
+Log rejected                       : C:\Users\LCELIL\TSF_Internship\data\cleaned\Arome_rejected_distance.tsv
+
+============================================================
+4. deduplicate
+============================================================
+=== Report deduplicate ===
+Lines read           : 1108444
+Duplicates (id, datetime) removed : 25557
+Lines kept           : 1082887
+Output file          : C:\Users\LCELIL\TSF_Internship\data\cleaned\Arome_clean_final.csv
+
+============================================================
+Pipeline done. Final file : Datasetfinal_clean_final.csv
+============================================================
