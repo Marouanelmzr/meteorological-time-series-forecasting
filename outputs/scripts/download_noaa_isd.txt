@@ -1,0 +1,8 @@
+Download completed.
+Stations with data: 25 / 26
+Rows: 1,324,764
+Saved to:
+C:\Users\LCELIL\TSF_Internship\data\raw\NOAA_ISD_2021_2025.csv
+
+Stations with no data over 2021-2025:
+['GMFI']

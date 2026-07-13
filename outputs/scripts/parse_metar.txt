@@ -1,0 +1,6 @@
+Rows total: 1,324,764
+Core fields decoded (manual, 100% coverage): 1,324,764
+Rows with gust (OC1): 37,325 (2.82%)
+OC1 vs avwx gust mismatches: 19,953
+Enriched with clouds/present weather (avwx): 500,893 (37.8%)
+Stations: 25
