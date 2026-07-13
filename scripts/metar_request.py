@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 
 STATIONS_FILE = ROOT / "data" / "cleaned" / "isd_history_station_check.csv"
 OUTPUT_FILE = ROOT / "data" / "raw" / "METAR_2021_2025.csv"
