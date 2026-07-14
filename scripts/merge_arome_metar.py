@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 AROME_PATH = PROJECT_ROOT / "data" / "cleaned" / "Arome_clean_final.csv"
-METAR_PATH = PROJECT_ROOT / "data" / "raw" / "METAR_2021_2025.csv"
+METAR_PATH = PROJECT_ROOT / "data" / "raw" / "METAR_merged_sources_2021_2025.csv"
 MAPPING_PATH = PROJECT_ROOT / "data" / "cleaned" / "isd_history_station_check.csv"
 OUTPUT_PATH = PROJECT_ROOT / "data" / "cleaned" / "AROME_METAR_merged_2021_2025.csv"
 
@@ -37,14 +37,14 @@ def load_arome(path: Path) -> pd.DataFrame:
 
 
 def load_metar(path: Path, icao_to_wmo: dict) -> pd.DataFrame:
-    df = pd.read_csv(path, dtype={"station": str}, low_memory=False)
+    df = pd.read_csv(path, dtype={"icao": str}, low_memory=False)
 
-    df["valid"] = pd.to_datetime(df["valid"])
-    df["datetime"] = df["valid"].dt.floor("h")
+    df["date"] = pd.to_datetime(df["date"])
+    df["datetime"] = df["date"].dt.floor("h")
 
-    df["wmo_id"] = df["station"].map(icao_to_wmo)
+    df["wmo_id"] = df["icao"].map(icao_to_wmo)
 
-    unmatched = df[df["wmo_id"].isna()]["station"].unique()
+    unmatched = df[df["wmo_id"].isna()]["icao"].unique()
     if len(unmatched):
         print( f"WARNING: {len(unmatched)} ICAO code(s) in METAR have no entry in the station mapping and will be dropped: {sorted(unmatched)}" )
 
@@ -54,7 +54,7 @@ def load_metar(path: Path, icao_to_wmo: dict) -> pd.DataFrame:
 
     # Keep one METAR per station per hour
     df = (
-        df.sort_values("valid")
+        df.sort_values("date")
           .drop_duplicates(subset=["wmo_id", "datetime"], keep="first")
     )
 

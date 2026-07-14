@@ -1,0 +1,5 @@
+outs:
+- md5: 8c0c31fbd812b6e6c8b8e3654c15710a
+  size: 84145165
+  hash: md5
+  path: METAR_bulletin_2021_2025.csv
