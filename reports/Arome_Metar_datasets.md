@@ -40,6 +40,3 @@ $$
 evaluated once per station per run and broadcast identically to every lead time $h$ associated with that run. This construction is causally sound by design: it cannot vary with $T$, and therefore cannot introduce the lead-time-dependent leakage described in Section 3.
 
 Framed this way, the extension also becomes a well-posed empirical question rather than an assumption: does conditioning the correction model on the atmospheric state actually observed at issue time improve on AROME-only predictors, and if so, at which lead times? The expected pattern — meaningful gain at short lead times, decaying toward negligible as $h$ grows and the persistence signal becomes uninformative about conditions tens of hours later — is itself a testable hypothesis. Evaluating it requires no change to the modelling framework established here, only the addition of the persistence feature and a lead-time-stratified comparison  between the AROME-only baseline and its METAR-augmented counterpart. This is proposed as a natural next step once the baseline established in this chapter has been validated.
-
-
-I NEED TO MERGE my NOAA Metar dataset with the one provided to fill the gaps and have a complete dataset 
