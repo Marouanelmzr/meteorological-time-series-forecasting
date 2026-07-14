@@ -63,7 +63,14 @@ def clean_columns(df):
 
 def add_time_features(df):
 
-    df["run_time"] = df["valid_time"].dt.normalize()
+    # All times are in UTC, so we can use the valid_time to compute the run_time and lead_time.
+
+    run_time = df["valid_time"].dt.normalize()
+
+    midnight = df["valid_time"].dt.hour == 0
+    run_time.loc[midnight] -= pd.Timedelta(days=1)
+
+    df["run_time"] = run_time
 
     df["lead_time"] = (
         (df["valid_time"] - df["run_time"])
@@ -77,13 +84,17 @@ def add_time_features(df):
     df["doy_sin"] = np.sin(2 * np.pi * doy / 365.25)
     df["doy_cos"] = np.cos(2 * np.pi * doy / 365.25)
 
-    df["hour_sin"] = np.sin(2 * np.pi * df["lead_time"] / 24)
-    df["hour_cos"] = np.cos(2 * np.pi * df["lead_time"] / 24)
+    hour = df["valid_time"].dt.hour
+    df["hour_sin"] = np.sin(2 * np.pi * hour / 24)
+    df["hour_cos"] = np.cos(2 * np.pi * hour / 24)
 
     return df
 
 
 def add_wind_features(df):
+
+    df["t2m"] = df["t2m"] - 273.15
+    df["psurf"] = df["psurf"] / 100
 
     for name, u, v in [
         ("wind10", "u10", "v10"),
@@ -97,8 +108,11 @@ def add_wind_features(df):
         df[f"arome_{name}_dir"] = (
             np.degrees(np.arctan2(-df[u], -df[v])) % 360
         )
-
-    df["arome_gust_baseline_ms"] = df["arome_gust60_speed"]
+    
+    df["wind_shear_950_10"] = np.hypot(
+    df["u950"] - df["u10"],
+    df["v950"] - df["v10"],
+)
 
     return df
 
@@ -140,7 +154,7 @@ KEEP_COLUMNS = [
     "t2m","rh2m","psurf","pblh","tke20m","edr20m",
     "u_gust60","v_gust60",
     "arome_gust60_speed","arome_gust60_dir",
-    "arome_gust_baseline_ms",
+    "wind_shear_950_10",
 
     # METAR
     "metar_source",
