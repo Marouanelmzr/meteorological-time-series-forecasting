@@ -19,7 +19,9 @@ OUTPUT_FILE = ROOT / "data" / "raw" / "METAR_bulletin_2021_2025.csv"
 # message body up to ";source;{...}" (non-greedy, spans embedded \r\r breaks).
 RECORD_PATTERN = re.compile(
     rb"\d+;SAMC40_([A-Z]{4})_(\d{6})\.\d+\.X;\d+;\d+;(\d{4}-\d{2}-\d{2});"
-    rb"SAMC40 [A-Z]{4} \d{6}\r\r\n(.*?);\w+;\{[^}]*\}",
+    rb"SAMC40 [A-Z]{4} \d{6}"
+    rb".*?"
+    rb"(.*?);\w+;\{[^}]*\}",
     re.DOTALL,
 )
 

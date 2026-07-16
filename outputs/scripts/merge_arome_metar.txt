@@ -5,3 +5,13 @@ AROME rows           : 1078226
 METAR rows (matched station) : 836902
 Merged rows (inner join)     : 794671
 AROME rows without a METAR match : 283555 (26.3%)
+
+# AFTER FIX 
+
+AROME: 1082887 rows loaded, 1078226 kept after restricting to 2021-01-01 -> 2025-12-31 23:59 (4661 dropped, mostly the 2019-2020 tail).
+METAR: 851876 rows -> 851876 hourly observations (0 duplicates removed).
+
+AROME rows           : 1078226
+METAR rows (matched station) : 851876
+Merged rows (inner join)     : 808914
+AROME rows without a METAR match : 269312 (25.0%)

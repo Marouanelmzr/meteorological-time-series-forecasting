@@ -33,3 +33,43 @@ GMSL       20354      1
 GMTA         584  39506
 GMTT         463  40075
 GSVO           0   9155
+
+
+# AFTER FIX 
+
+
+Official stations: 26
+NOAA hourly observations: 760,591
+Bulletin hourly observations: 507,718
+Bulletin rows used to fill NOAA gaps: 91,285
+No duplicate (icao, hour) pairs found.
+
+Merged total: 851,876 rows
+source  bulletin   noaa
+icao                   
+GEML           0  40093
+GMAA       10723   9053
+GMAD         460  40085
+GMAG         510  29399
+GMAT         311  24579
+GMFB         787  25028
+GMFF         462  40083
+GMFI       24897      0
+GMFK         558  39897
+GMFM         615  39710
+GMFO         473  40044
+GMMC           9  23287
+GMMD         346  27191
+GMME         456  40079
+GMMF           0  13189
+GMMI         528  35349
+GMML        1185  38927
+GMMN         455  40084
+GMMP       21026   5950
+GMMW         564  39896
+GMMX         476  39984
+GMMZ         559  39947
+GMSL       24833      1
+GMTA         588  39506
+GMTT         464  40075
+GSVO           0   9155
