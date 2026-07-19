@@ -147,3 +147,93 @@ ALL_COLUMNS = (
     ]
     + AUXILIARY_COLUMNS
 )
+
+
+# FEATURE SETS
+
+
+# Complete AROME feature set (baseline)
+FEATURESET_AROME = AROME_FEATURES
+
+# Only 10 m wind
+FEATURESET_WIND10 = (
+    STATION_FEATURES
+    + TIME_FEATURES
+    + AROME_WIND10
+)
+
+# 10 m wind + gust forecast
+FEATURESET_WIND10_GUST = (
+    STATION_FEATURES
+    + TIME_FEATURES
+    + AROME_WIND10
+    + AROME_GUST
+)
+
+# Wind at every pressure level
+FEATURESET_ALL_WINDS = (
+    STATION_FEATURES
+    + TIME_FEATURES
+    + AROME_WIND10
+    + AROME_WIND850
+    + AROME_WIND950
+)
+
+# Wind + atmospheric variables
+FEATURESET_METEO = (
+    STATION_FEATURES
+    + TIME_FEATURES
+    + AROME_WIND10
+    + AROME_WIND850
+    + AROME_WIND950
+    + AROME_ATMOSPHERE
+)
+
+# Everything except station information
+FEATURESET_NO_STATION = (
+    TIME_FEATURES
+    + AROME_WIND10
+    + AROME_WIND850
+    + AROME_WIND950
+    + AROME_ATMOSPHERE
+    + AROME_GUST
+    + DERIVED_FEATURES
+)
+
+# Everything except time variables
+FEATURESET_NO_TIME = (
+    STATION_FEATURES
+    + AROME_WIND10
+    + AROME_WIND850
+    + AROME_WIND950
+    + AROME_ATMOSPHERE
+    + AROME_GUST
+    + DERIVED_FEATURES
+)
+
+# Everything except derived features
+FEATURESET_NO_DERIVED = (
+    STATION_FEATURES
+    + TIME_FEATURES
+    + AROME_WIND10
+    + AROME_WIND850
+    + AROME_WIND950
+    + AROME_ATMOSPHERE
+    + AROME_GUST
+)
+
+# Oracle experiment (includes METAR observations)
+FEATURESET_ALL = ALL_FEATURES
+
+# Dictionary used by Hydra / Dataset
+FEATURE_SETS = {
+    "arome": FEATURESET_AROME,
+    "wind10": FEATURESET_WIND10,
+    "wind10_gust": FEATURESET_WIND10_GUST,
+    "all_winds": FEATURESET_ALL_WINDS,
+    "meteo": FEATURESET_METEO,
+    "no_station": FEATURESET_NO_STATION,
+    "no_time": FEATURESET_NO_TIME,
+    "no_derived": FEATURESET_NO_DERIVED,
+    "all": FEATURESET_ALL,
+}

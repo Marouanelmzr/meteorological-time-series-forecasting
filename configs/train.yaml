@@ -1,0 +1,14 @@
+defaults:
+  - model: logistic_regression
+  - dataset: default
+  - trainer: default
+  - evaluation: default
+  - features: arome
+  - logging: wandb
+  - paths: default
+
+task: classification
+target: has_gust
+seed: 42
+
+experiment_name: logistic_regression_baseline

@@ -1,0 +1,44 @@
+name: arome
+
+columns:
+  - arome_lon
+  - arome_lat
+  - station_lon
+  - station_lat
+  - elevation_m
+  - distance_km
+
+  - lead_time
+  - doy_sin
+  - doy_cos
+  - hour_sin
+  - hour_cos
+
+  - u10
+  - v10
+  - arome_wind10_speed
+  - arome_wind10_dir
+
+  - u850
+  - v850
+  - arome_wind850_speed
+  - arome_wind850_dir
+
+  - u950
+  - v950
+  - arome_wind950_speed
+  - arome_wind950_dir
+
+  - t2m
+  - rh2m
+  - psurf
+  - pblh
+  - tke20m
+  - edr20m
+
+  - u_gust60
+  - v_gust60
+  - arome_gust60_speed
+  - arome_gust60_dir
+
+  - wind_shear_950_10

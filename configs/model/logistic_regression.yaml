@@ -1,0 +1,10 @@
+name: logistic_regression
+
+_target_: src.models.classification.logistic_regression.LogisticRegressionModel
+
+penalty: l2
+C: 1.0
+solver: lbfgs
+max_iter: 1000
+class_weight: balanced
+random_state: ${seed}

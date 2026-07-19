@@ -1,0 +1,7 @@
+models_dir: outputs/models
+
+plots_dir: outputs/plots
+
+metrics_dir: outputs/metrics
+
+predictions_dir: outputs/predictions

@@ -1,0 +1,15 @@
+_target_: src.data.dataset.Dataset
+
+data_dir: data/processed
+
+target: has_gust
+
+feature_columns: ${features.columns}
+
+metadata_columns:
+  - station_id
+  - icao
+  - station_name
+  - run_time
+  - valid_time
+  - lead_time
