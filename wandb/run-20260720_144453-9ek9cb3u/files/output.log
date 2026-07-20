@@ -1,0 +1,48 @@
+Loading dataset...
+Loading model...
+
+============================================================
+Dataset summary
+============================================================
+Train       : 491,073
+Validation  : 196,445
+Test        : 121,173
+
+Target      : has_gust
+Features    : 34
+
+Training model...
+C:\Users\LCELIL\TSF_Internship\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:1403: FutureWarning: 'penalty' was deprecated in version 1.8 and will be removed in 1.10. To avoid this warning, leave 'penalty' set to its default value and use 'l1_ratio' or 'C' instead. Use l1_ratio=0 instead of penalty='l2', l1_ratio=1 instead of penalty='l1', l1_ratio set to a float between 0 and 1 instead of penalty='elasticnet', and C=np.inf instead of penalty=None.
+  warnings.warn(
+C:\Users\LCELIL\TSF_Internship\.venv\Lib\site-packages\sklearn\linear_model\_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 1000 iteration(s) (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=1000).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+Running validation...
+Saving metrics...
+Saving figures...
+Saving model...
+[34m[1mwandb[0m: [33mWARNING[0m Linked 1 file into the W&B run directory (hardlinks); call wandb.save again to sync new files.
+
+============================================================
+Validation results
+============================================================
+ClassificationMetrics(y_true=0         0
+1         0
+2         0
+3         0
+4         0
+         ..
+196440    0
+196441    0
+196442    0
+196443    0
+196444    0
+Name: has_gust, Length: 196445, dtype: int64, y_pred=array([0, 0, 0, ..., 0, 0, 1], shape=(196445,)), y_prob=array([0.03476183, 0.18389795, 0.05404105, ..., 0.17946627, 0.15714002,
+       0.51439644], shape=(196445,)))
+============================================================

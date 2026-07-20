@@ -2,10 +2,11 @@ defaults:
   - model: logistic_regression
   - dataset: default
   - trainer: default
-  - evaluation: default
+  - evaluation: classification
   - features: arome
-  - logging: wandb
+  - wandb: default
   - paths: default
+  - _self_
 
 task: classification
 target: has_gust

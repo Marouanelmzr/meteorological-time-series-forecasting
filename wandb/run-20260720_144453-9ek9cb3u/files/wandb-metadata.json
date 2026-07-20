@@ -1,0 +1,40 @@
+{
+  "os": "Windows-10-10.0.26200-SP0",
+  "python": "CPython 3.11.9",
+  "startedAt": "2026-07-20T13:44:53.026484Z",
+  "program": "C:\\Users\\LCELIL\\TSF_Internship\\scripts\\train_classification.py",
+  "codePath": "scripts\\train_classification.py",
+  "codePathLocal": "scripts\\train_classification.py",
+  "git": {
+    "remote": "https://github.com/Marouanelmzr/meteorological-time-series-forecasting.git",
+    "commit": "1065d7efaa390a025ea16d7b675bfe3b3e73b38b"
+  },
+  "email": "elmozariahi.marouane@etu.uae.ac.ma",
+  "root": "C:\\Users\\LCELIL\\TSF_Internship",
+  "host": "Marouane",
+  "executable": "C:\\Users\\LCELIL\\TSF_Internship\\.venv\\Scripts\\python.exe",
+  "cpu_count": 8,
+  "cpu_count_logical": 16,
+  "gpu": "NVIDIA GeForce RTX 2060",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "511059607552",
+      "used": "444735250432"
+    }
+  },
+  "memory": {
+    "total": "34278440960"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 2060",
+      "memoryTotal": "6442450944",
+      "cudaCores": 1920,
+      "architecture": "Turing",
+      "uuid": "GPU-d959b515-a563-9a22-769f-a672bb5246c1"
+    }
+  ],
+  "cudaVersion": "13.1",
+  "writerId": "pq5nccylz69syzgdc0uwpzq9rvi943p0"
+}

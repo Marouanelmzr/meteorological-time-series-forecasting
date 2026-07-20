@@ -8,9 +8,10 @@ from src.visualization.classification_plots import ClassificationPlots
 
 class ClassificationTrainer:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, logger=None,):
 
         self.cfg = cfg
+        self.logger = logger
 
         self.dataset = None
         self.model = None
@@ -104,6 +105,7 @@ class ClassificationTrainer:
             y_true=self.y_val,
             y_pred=self.y_pred,
             y_prob=self.y_prob,
+            metadata=self.metadata,
             model=self.model.model,
             feature_names=self.dataset.feature_names,
             save_dir=self.cfg.paths.plots_dir,
@@ -124,28 +126,6 @@ class ClassificationTrainer:
 
         self.plots.save_all()
 
-        if "lead_time" in self.metadata.columns:
-
-            self.plots.performance_by_lead_time(
-                self.metadata["lead_time"]
-            )
-
-        if "icao" in self.metadata.columns:
-
-            self.plots.performance_by_station(
-                self.metadata["icao"]
-            )
-
-        if (
-            "lead_time" in self.metadata.columns
-            and "icao" in self.metadata.columns
-        ):
-
-            self.plots.leadtime_station_heatmap(
-                self.metadata["lead_time"],
-                self.metadata["icao"],
-            )
-
         print("Saving model...")
 
         model_path = (
@@ -154,6 +134,13 @@ class ClassificationTrainer:
         )
 
         self.model.save(model_path)
+
+        if self.logger is not None:
+
+            self.logger.log_metrics(self.metrics.compute())
+            self.logger.log_directory(self.cfg.paths.plots_dir)
+            self.logger.log_model(model_path)
+            self.logger.save_file(metrics_path)
 
         print()
 

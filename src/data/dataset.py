@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from hydra.utils import to_absolute_path
+
 import pandas as pd
 
 
@@ -12,7 +14,9 @@ class Dataset:
         feature_columns: list[str],
         metadata_columns: list[str] | None = None,
     ):
-        self.data_dir = Path(data_dir)
+        self.data_dir = Path(
+            to_absolute_path(str(data_dir))
+        )
 
         self.target = target
         self.feature_columns = feature_columns
