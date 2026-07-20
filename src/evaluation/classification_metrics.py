@@ -50,6 +50,12 @@ class ClassificationMetrics:
 
         self.metrics["recall"] = recall_score(self.y_true, self.y_pred, zero_division=0,)
 
+        self.metrics["f1"] = f1_score(
+            self.y_true,
+            self.y_pred,
+            zero_division=0,
+        )
+        
         self.metrics["mcc"] = matthews_corrcoef(self.y_true, self.y_pred,)
 
         self.metrics["pod"] = ( 
@@ -90,6 +96,7 @@ class ClassificationMetrics:
             else 0.0
         )
 
+
         if self.y_prob is not None:
 
             self.metrics["roc_auc"] = roc_auc_score(
@@ -117,19 +124,25 @@ class ClassificationMetrics:
     def to_dict(self):
         return self.metrics
     
-    def print(self):
+    def __str__(self):
 
-        print("=" * 60)
-        print("Classification Metrics")
-        print("=" * 60)
+        if not self.metrics:
+            self.compute()
 
-        for k, v in self.metrics.items():
+        lines = [
+            "=" * 60,
+            "Classification Metrics",
+            "=" * 60,
+        ]
 
-            if isinstance(v, float):
-                print(f"{k:20s}: {v:.4f}")
+        for key, value in self.metrics.items():
+            if isinstance(value, float):
+                lines.append(f"{key:20s}: {value:.4f}")
             else:
-                print(f"{k:20s}: {v}")
-    
+                lines.append(f"{key:20s}: {value}")
+
+        return "\n".join(lines)
+
     def save(self, path):
 
         path = Path(path)

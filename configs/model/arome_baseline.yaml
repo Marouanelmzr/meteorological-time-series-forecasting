@@ -1,0 +1,5 @@
+_target_: src.models.arome_baseline.AromeBaseline
+
+gust_column: arome_gust60_speed
+
+threshold: 10.0

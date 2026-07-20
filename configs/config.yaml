@@ -12,4 +12,4 @@ task: classification
 target: has_gust
 seed: 42
 
-experiment_name: logistic_regression_baseline
+experiment_name: ${hydra:runtime.choices.model}

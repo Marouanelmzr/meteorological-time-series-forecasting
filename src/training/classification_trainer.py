@@ -91,9 +91,10 @@ class ClassificationTrainer:
 
         if hasattr(self.model, "predict_proba"):
 
-            self.y_prob = self.model.predict_proba(
-                self.X_val
-            )[:, 1]
+            probabilities = self.model.predict_proba(self.X_val)
+        
+            if probabilities is not None:
+                self.y_prob = probabilities[:, 1]
 
         self.metrics = ClassificationMetrics(
             y_true=self.y_val,
