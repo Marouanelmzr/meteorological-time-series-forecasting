@@ -1,0 +1,15 @@
+_target_: src.models.classification.random_forest.RandomForestModel
+
+n_estimators: 300
+max_depth: null
+
+min_samples_split: 2
+min_samples_leaf: 1
+
+max_features: sqrt
+
+class_weight: balanced
+
+random_state: ${seed}
+
+n_jobs: -1

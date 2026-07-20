@@ -85,16 +85,23 @@ class ClassificationTrainer:
 
         print("Running validation...")
 
-        self.y_pred = self.model.predict(
-            self.X_val
-        )
+        threshold = self.cfg.evaluation.probability_threshold
 
         if hasattr(self.model, "predict_proba"):
-
-            probabilities = self.model.predict_proba(self.X_val)
         
-            if probabilities is not None:
-                self.y_prob = probabilities[:, 1]
+            self.y_prob = self.model.predict_proba(
+                self.X_val
+            )[:, 1]
+        
+            self.y_pred = (
+                self.y_prob >= threshold
+            ).astype(int)
+        
+        else:
+        
+            self.y_pred = self.model.predict(
+                self.X_val
+            )
 
         self.metrics = ClassificationMetrics(
             y_true=self.y_val,
