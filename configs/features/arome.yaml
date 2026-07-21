@@ -6,7 +6,7 @@ columns:
   - station_lon
   - station_lat
   - elevation_m
-  - distance_km
+#  - distance_km
 
   - lead_time
   - doy_sin

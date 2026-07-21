@@ -1,10 +1,9 @@
-from pathlib import Path
-
-import joblib
 from sklearn.ensemble import RandomForestClassifier
 
+from src.models.base_model import BaseModel
 
-class RandomForestModel:
+
+class RandomForestModel(BaseModel):
 
     def __init__(
         self,
@@ -18,7 +17,7 @@ class RandomForestModel:
         n_jobs=-1,
     ):
 
-        self.model = RandomForestClassifier(
+        super().__init__(
             n_estimators=n_estimators,
             max_depth=max_depth,
             min_samples_split=min_samples_split,
@@ -29,16 +28,10 @@ class RandomForestModel:
             n_jobs=n_jobs,
         )
 
+        self.model = RandomForestClassifier(**self.params)
+
     def fit(self, X, y):
         self.model.fit(X, y)
 
     def predict(self, X):
         return self.model.predict(X)
-
-    def predict_proba(self, X):
-        return self.model.predict_proba(X)
-
-    def save(self, path):
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump(self.model, path)
