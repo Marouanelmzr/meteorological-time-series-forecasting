@@ -30,7 +30,7 @@ class RandomForestModel(BaseModel):
 
         self.model = RandomForestClassifier(**self.params)
 
-    def fit(self, X, y):
+    def fit(self, X, y, X_val=None, y_val=None):
         self.model.fit(X, y)
 
     def predict(self, X):

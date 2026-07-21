@@ -386,6 +386,30 @@ class ClassificationPlots(BasePlots):
         self.save("leadtime_station_heatmap.png")
 
 
+    def training_history(self, evals_result):
+    
+        train = evals_result["validation_0"]["logloss"]
+        val = evals_result["validation_1"]["logloss"]
+
+        plt.figure(figsize=(8,5))
+
+        plt.plot(train, label="Training")
+        plt.plot(val, label="Validation")
+
+        plt.xlabel("Boosting Round")
+        plt.ylabel("Log Loss")
+
+        plt.title("XGBoost Learning Curve")
+
+        plt.legend()
+
+        plt.tight_layout()
+
+        plt.savefig(self.save_dir / "learning_curve.png")
+
+        plt.close()
+
+
     def save_all(self):
 
         self.confusion_matrix()
@@ -411,3 +435,9 @@ class ClassificationPlots(BasePlots):
             self.performance_by_lead_time()
 
             self.leadtime_station_heatmap()
+        
+        if hasattr(self.model, "evals_result"):
+
+            self.training_history(
+                self.model.evals_result()
+            )

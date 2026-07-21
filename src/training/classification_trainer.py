@@ -79,6 +79,8 @@ class ClassificationTrainer:
         self.model.fit(
             self.X_train,
             self.y_train,
+            self.X_val,
+            self.y_val,
         )
 
     def _validate(self):

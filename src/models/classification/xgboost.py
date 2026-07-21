@@ -36,8 +36,25 @@ class XGBoostModel(BaseModel):
 
         self.model = XGBClassifier(**self.params)
 
-    def fit(self, X, y):
-        self.model.fit(X, y)
+    def fit(self, X_train, y_train, X_val=None, y_val=None):
+
+        eval_set = None
+    
+        if X_val is not None:
+            eval_set = [
+                (X_train, y_train),
+                (X_val, y_val),
+            ]
+    
+        self.model.fit(
+            X_train,
+            y_train,
+            eval_set=eval_set,
+            verbose=False,
+        )
+    
+        if eval_set is not None:
+            self.evals_result = self.model.evals_result()
 
     def predict(self, X):
         return self.model.predict(X)

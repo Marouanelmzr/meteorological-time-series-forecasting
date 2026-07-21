@@ -11,7 +11,7 @@ class LogisticRegressionModel(BaseModel):
             ("classifier", LogisticRegression(**kwargs)),
         ])
 
-    def fit(self, X, y):
+    def fit(self, X, y, X_val=None, y_val=None):
         self.model.fit(X, y)
         return self
 

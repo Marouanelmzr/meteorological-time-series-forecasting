@@ -1,6 +1,6 @@
 _target_: src.models.classification.xgboost.XGBoostModel
 
-n_estimators: 300
+n_estimators: 800
 learning_rate: 0.05
 
 max_depth: 6
