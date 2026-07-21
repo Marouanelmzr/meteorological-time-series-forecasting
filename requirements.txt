@@ -7,6 +7,7 @@ pyarrow==21.0.0
 # Machine Learning
 scikit-learn
 xgboost
+lightgbm
 
 # Deep Learning
 torch
