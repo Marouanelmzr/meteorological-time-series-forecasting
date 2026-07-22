@@ -8,6 +8,7 @@ pyarrow==21.0.0
 scikit-learn
 xgboost
 lightgbm
+optuna
 
 # Deep Learning
 torch

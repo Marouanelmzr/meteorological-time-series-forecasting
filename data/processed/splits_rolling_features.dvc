@@ -1,0 +1,6 @@
+outs:
+- md5: e29a8e885735e2288fad92ebc1aad4f7.dir
+  size: 147644990
+  nfiles: 3
+  hash: md5
+  path: splits_rolling_features

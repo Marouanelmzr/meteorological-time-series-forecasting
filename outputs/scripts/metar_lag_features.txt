@@ -1,0 +1,17 @@
+Merging back onto full dataset ...
+
+Feature coverage (non-null %):
+  metar_wind_mean_3h               88.3%
+  metar_wind_mean_6h               98.2%
+  metar_wind_std_3h                78.6%
+  metar_wind_std_6h                92.9%
+  metar_wind_max_3h                88.3%
+  metar_wind_max_6h                98.2%
+  metar_temp_mean_3h               89.7%
+  metar_temp_mean_6h               99.4%
+  metar_pressure_mean_6h           67.6%
+  metar_pressure_std_6h            44.7%
+  metar_wind_trend_6h              87.9%
+  metar_temp_trend_6h              89.3%
+  metar_pressure_trend_6h          42.9%
+  metar_hours_since_last_obs       99.9%

@@ -1,6 +1,7 @@
 _target_: src.data.dataset.Dataset
 
-data_dir: data/processed/splits
+# data_dir: data/processed/splits
+data_dir: data/processed/splits_rolling_features
 
 target: has_gust
 
