@@ -1,0 +1,6 @@
+outs:
+- md5: ecced6ba5248f774a62c0d7c3c90d484.dir
+  size: 8138411
+  nfiles: 3
+  hash: md5
+  path: splits_gmme

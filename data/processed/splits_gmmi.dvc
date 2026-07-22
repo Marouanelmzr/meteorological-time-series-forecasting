@@ -1,0 +1,6 @@
+outs:
+- md5: 363357e0944e4dd80a612ec1f7528535.dir
+  size: 7257960
+  nfiles: 3
+  hash: md5
+  path: splits_gmmi

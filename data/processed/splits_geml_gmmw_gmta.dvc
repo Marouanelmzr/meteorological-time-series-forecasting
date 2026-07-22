@@ -1,0 +1,6 @@
+outs:
+- md5: 0d17016f5d4ed53033dbdbd8772b1f2c.dir
+  size: 23107675
+  nfiles: 3
+  hash: md5
+  path: splits_geml_gmmw_gmta

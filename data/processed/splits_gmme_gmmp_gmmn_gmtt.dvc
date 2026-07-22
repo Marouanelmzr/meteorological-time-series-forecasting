@@ -1,0 +1,6 @@
+outs:
+- md5: 3c04371aecc4268564cc6b9e5b52305a.dir
+  size: 28750506
+  nfiles: 3
+  hash: md5
+  path: splits_gmme_gmmp_gmmn_gmtt

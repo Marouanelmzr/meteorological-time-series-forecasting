@@ -1,0 +1,6 @@
+outs:
+- md5: f4f6bbdc72f55fbd3dc5889dd3379f91.dir
+  size: 26010067
+  nfiles: 3
+  hash: md5
+  path: splits_gmfi_gmfb_gmfk_gmmz

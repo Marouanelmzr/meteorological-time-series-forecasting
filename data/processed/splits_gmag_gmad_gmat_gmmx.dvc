@@ -1,0 +1,6 @@
+outs:
+- md5: 45a4703ef0ead4bc5844a60469e42720.dir
+  size: 26353149
+  nfiles: 3
+  hash: md5
+  path: splits_gmag_gmad_gmat_gmmx
