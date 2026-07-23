@@ -5,7 +5,7 @@ _target_: src.data.dataset.Dataset
 data_dir: data/processed/splits_gust_excess
 
 # target: has_gust
-target: gust_excess_ms
+target: gust_forecast_error_ms
 
 feature_columns: ${features.columns}
 

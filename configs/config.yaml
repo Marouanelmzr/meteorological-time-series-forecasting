@@ -10,7 +10,7 @@ defaults:
 
 task: classification
 # target: has_gust
-target: gust_excess_ms 
+target: gust_forecast_error_ms 
 seed: 42
 
 experiment_name: ${hydra:runtime.choices.model}

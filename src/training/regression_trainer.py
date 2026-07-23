@@ -3,6 +3,7 @@ from pathlib import Path
 from hydra.utils import instantiate
 
 from src.evaluation.regression_metrics import RegressionMetrics
+from src.evaluation.classification_metrics import ClassificationMetrics
 from src.visualization.regression_plots import RegressionPlots
 
 
@@ -89,9 +90,24 @@ class RegressionTrainer:
             self.X_val
         )
 
+        arome_gust = self.X_val["arome_gust60_speed"].values
+
+        # To compare with classification baseline
+        corrected_gust = arome_gust + self.y_pred
+        observed_gust = arome_gust + self.y_val
+
+        pred_has_gust = (corrected_gust >= 10).astype(int)
+        true_has_gust = (observed_gust >= 10).astype(int)
+
         self.metrics = RegressionMetrics(
             y_true=self.y_val,
             y_pred=self.y_pred,
+            arome_gust=arome_gust,
+        )
+
+        self.classification_metrics = ClassificationMetrics(
+            y_true=true_has_gust,
+            y_pred=pred_has_gust,
         )
 
         self.plots = RegressionPlots(
@@ -114,6 +130,13 @@ class RegressionTrainer:
 
         self.metrics.save(metrics_path)
 
+        classification_metrics_path = (
+            Path(self.cfg.paths.metrics_dir)
+            / "classification_metrics.json"
+        )
+
+        self.classification_metrics.save(classification_metrics_path)
+
         print("Saving figures...")
 
         self.plots.save_all()
@@ -129,8 +152,14 @@ class RegressionTrainer:
 
         if self.logger is not None:
 
+            metrics = self.metrics.compute()
+
+            classification_metrics = self.classification_metrics.compute()
+            
+            self.logger.log_metrics(metrics)
             self.logger.log_metrics(
-                self.metrics.compute()
+                {f"classification/{k}": v
+                 for k, v in classification_metrics.items()}
             )
 
             self.logger.log_directory(
@@ -152,5 +181,11 @@ class RegressionTrainer:
         print("=" * 60)
 
         print(self.metrics)
+
+        print("=" * 60)
+        print("Classification after thresholding")
+        print("=" * 60)
+
+        print(self.classification_metrics)
 
         print("=" * 60)
