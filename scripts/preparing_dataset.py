@@ -20,9 +20,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 SRC = PROJECT_ROOT / "data" / "cleaned" / "AROME_METAR_merged_2021_2025.csv"
-OUT = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025.csv"
+# OUT = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025.csv"
+OUT = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025_no_threshold.csv"
 
-GUST_THRESHOLD = 10.0
+# GUST_THRESHOLD = 10.0
+GUST_THRESHOLD = 0.0 # Experimenting with all gust_speed_ms values
 
 
 def clean_columns(df):

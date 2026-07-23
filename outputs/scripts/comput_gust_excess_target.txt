@@ -1,0 +1,16 @@
+808,914 rows loaded
+
+Target statistics
+-----------------
+count    808914.000000
+mean          0.126282
+std           0.816056
+min           0.000000
+25%           0.000000
+50%           0.000000
+75%           0.000000
+max          50.900000
+Name: gust_excess_ms, dtype: float64
+
+Zero targets : 96.99%
+Positive     : 3.01%

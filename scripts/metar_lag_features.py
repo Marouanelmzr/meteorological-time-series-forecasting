@@ -9,8 +9,10 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1] 
 sys.path.insert(0, str(PROJECT_ROOT))
 
-INPUT_PATH = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025.csv"
-OUTPUT_PATH = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025_with_rolling_features.csv"
+#INPUT_PATH = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025.csv"
+INPUT_PATH = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025_no_threshold.csv"
+# OUTPUT_PATH = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025_with_rolling_features.csv"
+OUTPUT_PATH = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025__no_t_with_rolling_features.csv"
 
 ICAO_COL = "icao"
 RUN_TIME_COL = "run_time"

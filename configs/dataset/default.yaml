@@ -1,9 +1,11 @@
 _target_: src.data.dataset.Dataset
 
 # data_dir: data/processed/splits
-data_dir: data/processed/splits_rolling_features
+# data_dir: data/processed/splits_rolling_features
+data_dir: data/processed/splits_gust_excess
 
-target: has_gust
+# target: has_gust
+target: gust_excess_ms
 
 feature_columns: ${features.columns}
 

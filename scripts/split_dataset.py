@@ -27,9 +27,11 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Paths
 
 # INPUT = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025.csv"
-INPUT = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025_with_rolling_features.csv"
+# INPUT = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025_with_rolling_features.csv"
+INPUT = PROJECT_ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025__gust_excess.csv"
 # OUTPUT_DIR = PROJECT_ROOT / "data" / "processed" / "splits"
-OUTPUT_DIR = PROJECT_ROOT / "data" / "processed" / "splits_rolling_features"
+# OUTPUT_DIR = PROJECT_ROOT / "data" / "processed" / "splits_rolling_features"
+OUTPUT_DIR = PROJECT_ROOT / "data" / "processed" / "splits_gust_excess"
 
 TRAIN_END = pd.Timestamp("2024-01-01")
 VAL_END = pd.Timestamp("2025-01-01")

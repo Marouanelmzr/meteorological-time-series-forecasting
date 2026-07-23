@@ -1,0 +1,6 @@
+outs:
+- md5: a87529a32761ec0967204bc8de29a7cf.dir
+  size: 147835002
+  nfiles: 3
+  hash: md5
+  path: splits_gust_excess

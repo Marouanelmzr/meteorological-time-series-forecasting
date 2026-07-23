@@ -15,7 +15,8 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 
-INPUT_FILE = ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025.csv"
+# INPUT_FILE = ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025.csv"
+INPUT_FILE = ROOT / "data" / "cleaned" / "FINAL_PREPARED_DATA_2021_2025_no_threshold.csv"
 
 GMFI_METADATA = {
     "station_lat": 33.5053,

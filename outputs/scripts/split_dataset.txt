@@ -15,3 +15,13 @@ VAL   | samples=196,445 | gusts=2,621 | stations=26 | 2024-01-01 -> 2024-12-31
 TEST  | samples=121,173 | gusts=1,752 | stations=25 | 2025-01-01 -> 2025-08-24
 
 Split completed successfully.
+
+# With no thresholding 
+
+Loaded 808,914 samples
+Removing 223 GSVO samples from test
+TRAIN | samples=491,073 | gusts=14,151 | stations=26 | 2020-12-31 -> 2023-12-31
+VAL   | samples=196,445 | gusts=5,727 | stations=26 | 2024-01-01 -> 2024-12-31
+TEST  | samples=121,173 | gusts=4,448 | stations=25 | 2025-01-01 -> 2025-08-24
+
+Split completed successfully.
