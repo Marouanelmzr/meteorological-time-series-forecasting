@@ -27,8 +27,7 @@ N_EXPECTED = len(COLUMNS)  # 17
 
 
 def normalize(tokens):
-    """Ramene une liste de tokens a la forme a 17 champs, ou None si rejetee.
-    Retourne (normalized_tokens, reason) -- reason est None si acceptee."""
+
     n = len(tokens)
 
     if n == 16:

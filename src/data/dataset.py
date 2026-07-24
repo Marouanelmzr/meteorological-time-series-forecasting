@@ -49,6 +49,22 @@ class Dataset:
 
         return X, y, metadata
 
+    def _split_positive(self, df: pd.DataFrame):
+
+        mask = df[self.target] > 0
+
+        X = df.loc[mask, self.feature_columns].copy()
+
+        y = df.loc[mask, self.target].copy()
+
+        metadata = (
+            df.loc[mask, self.metadata_columns].copy()
+            if self.metadata_columns
+            else pd.DataFrame(index=df.loc[mask].index)
+        )
+
+        return X, y, metadata
+
     def train(self):
 
         return self._split(self.train_df)
@@ -60,6 +76,18 @@ class Dataset:
     def test(self):
 
         return self._split(self.test_df)
+
+    def train_positive(self):
+
+        return self._split_positive(self.train_df)
+
+    def validation_positive(self):
+
+        return self._split_positive(self.val_df)
+
+    def test_positive(self):
+
+        return self._split_positive(self.test_df)
 
     @property
     def feature_names(self):
@@ -96,13 +124,24 @@ class Dataset:
         print("=" * 60)
         print("Dataset summary")
         print("=" * 60)
-
-        print(f"Train       : {self.n_train:,}")
-        print(f"Validation  : {self.n_validation:,}")
-        print(f"Test        : {self.n_test:,}")
-
+        
+        print(f"Train rows          : {self.n_train:,}")
+        print(f"Validation rows     : {self.n_validation:,}")
+        print(f"Test rows           : {self.n_test:,}")
+        
         print()
-
+        
+        print(
+            f"Positive train      : {(self.train_df[self.target] > 0).sum():,}"
+        )
+        print(
+            f"Positive validation : {(self.val_df[self.target] > 0).sum():,}"
+        )
+        print(
+            f"Positive test       : {(self.test_df[self.target] > 0).sum():,}"
+        )
+        
+        print()
+        
         print(f"Target      : {self.target}")
-
         print(f"Features    : {len(self.feature_columns)}")

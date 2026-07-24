@@ -277,22 +277,37 @@ class RegressionPlots(BasePlots):
     # Feature importance
 
     def plot_feature_importance(self):
+
         if self.model is None or self.feature_names is None:
             return
-
+    
         if hasattr(self.model, "feature_importances_"):
-            importance = self.model.feature_importances_
+            importance = np.asarray(self.model.feature_importances_)
+    
         elif hasattr(self.model, "coef_"):
             importance = np.abs(np.ravel(self.model.coef_))
+    
         else:
             return
-
-        importance = pd.Series(importance, index=self.feature_names).sort_values()
-
+    
+        # NGBoost compatibility
+        if importance.ndim != 1 or len(importance) != len(self.feature_names):
+            print(
+                "Skipping feature importance: "
+                f"shape={importance.shape}, "
+                f"expected ({len(self.feature_names)},)"
+            )
+            return
+    
+        importance = pd.Series(
+            importance,
+            index=self.feature_names,
+        ).sort_values()
+    
         fig, ax = plt.subplots(figsize=(8, 10))
         importance.tail(20).plot.barh(ax=ax)
         ax.set_title("Top 20 Feature Importance")
-
+    
         self.save("feature_importance.png")
 
     # SHAP — fixed: now actually receives real feature data
