@@ -1,0 +1,13 @@
+ Trial 99 finished with value: 2.277159389856793 and parameters: {'n_estimators': 972, 'learning_rate': 0.007075599089584061, 'minibatch_frac': 0.8226892761216473, 'base_max_depth': 7, 'base_min_samples_leaf': 89, 'base_min_samples_split': 41, 'distribution': 'lognormal'}. Best is trial 70 with value: 2.266775018481405.
+
+Best NLL: 2.266775018481405
+
+Best parameters:
+
+n_estimators: 1086
+learning_rate: 0.0050383885532647955
+minibatch_frac: 0.7737028464682613
+base_max_depth: 8
+base_min_samples_leaf: 95
+base_min_samples_split: 42
+distribution: lognormal

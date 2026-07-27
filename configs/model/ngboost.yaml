@@ -2,14 +2,14 @@ _target_: src.models.regression.ngboost.NGBoostModel
 
 distribution: lognormal
 
-n_estimators: 500
-learning_rate: 0.05
+n_estimators: 1086
+learning_rate: 0.0050383885532647955
 
-base_max_depth: 3
-base_min_samples_leaf: 20
-base_min_samples_split: 10
+base_max_depth: 8
+base_min_samples_leaf: 95
+base_min_samples_split: 42
 
-minibatch_frac: 1.0
+minibatch_frac: 0.7737028464682613
 col_sample: 1.0
 
 natural_gradient: true
