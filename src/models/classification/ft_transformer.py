@@ -17,9 +17,11 @@ class FTTransformerClassifier(BaseTorchClassifier):
         attention_dropout: float = 0.2,
         ffn_dropout: float = 0.1,
         residual_dropout: float = 0.0,
+        focal_alpha: float = 0.97,
+        focal_gamma: float = 2.0,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(focal_alpha=focal_alpha, focal_gamma=focal_gamma, **kwargs,)
 
         self.d_token = d_token
         self.n_blocks = n_blocks
@@ -28,12 +30,14 @@ class FTTransformerClassifier(BaseTorchClassifier):
         self.attention_dropout = attention_dropout
         self.ffn_dropout = ffn_dropout
         self.residual_dropout = residual_dropout
+        self.focal_alpha = focal_alpha
+        self.focal_gamma = focal_gamma
 
     def build_model(self, input_dim: int) -> nn.Module:
 
         return FTTransformer(
             n_cont_features=input_dim,
-            cat_cardinalities=[],
+            cat_cardinalities=self.cat_cardinalities,
             d_out=1,
             d_block=self.d_token,
             n_blocks=self.n_blocks,

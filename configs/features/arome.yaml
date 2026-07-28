@@ -3,6 +3,7 @@ name: arome
 columns:
 #  - arome_lon
 #  - arome_lat
+  - station_id
   - station_lon
   - station_lat
   - elevation_m
@@ -56,3 +57,6 @@ columns:
   - metar_wind_trend_6h
   - metar_temp_trend_6h
   - metar_pressure_trend_6h
+
+categorical_columns:
+  - station_id

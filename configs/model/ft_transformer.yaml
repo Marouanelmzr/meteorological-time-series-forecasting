@@ -3,15 +3,24 @@ _target_: src.models.classification.ft_transformer.FTTransformerClassifier
 lr: 3e-4
 batch_size: 1024
 epochs: 100
-patience: 15
+patience: 10
 
 monitor_metric: pr_auc
 
 scheduler: cosine
 
+weight_decay: 1e-5
+
 d_token: 192
 n_blocks: 3
+attention_n_heads: 8
+ffn_d_hidden_multiplier: 4.0
 
 attention_dropout: 0.2
 ffn_dropout: 0.1
-residual_dropout: 0.0 
+residual_dropout: 0.0
+
+focal_alpha: 0.97
+focal_gamma: 2.0
+
+categorical_columns: ${features.categorical_columns}

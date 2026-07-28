@@ -10,7 +10,10 @@ import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset, WeightedRandomSampler
-from sklearn.preprocessing import StandardScaler
+from src.models.losses import FocalLoss
+
+from sklearn.preprocessing import StandardScaler, OrdinalEncoder
+from sklearn.impute import SimpleImputer
 from tqdm.auto import tqdm
 
 from src.evaluation.classification_metrics import ClassificationMetrics
@@ -51,6 +54,7 @@ class BaseTorchClassifier(BaseModel):
         device: Optional[str] = None,
         random_state: int = 42,
         log_to_wandb: bool = True,
+        categorical_columns: Optional[List[str]] = None,
         **kwargs,
     ):
         super().__init__(
@@ -86,6 +90,14 @@ class BaseTorchClassifier(BaseModel):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.use_amp = (self.device == "cuda") if use_amp is None else use_amp
         self.scaler = StandardScaler()
+        self.cat_encoder = OrdinalEncoder(
+            dtype=np.int64,
+            handle_unknown="use_encoded_value",
+            unknown_value=-1,
+        )
+        self.imputer = SimpleImputer(strategy="median")
+
+        self.categorical_columns = categorical_columns or []
 
         torch.manual_seed(random_state)
         np.random.seed(random_state)
@@ -100,18 +112,50 @@ class BaseTorchClassifier(BaseModel):
         raise NotImplementedError("Subclasses must implement build_model(input_dim).")
 
     # Data helpers
-    def _to_numpy(self, X, fit: bool = False):
-        if isinstance(X, pd.DataFrame):
-            X = X.to_numpy(dtype=np.float32)
-        else:
-            X = np.asarray(X, dtype=np.float32)
+    def _prepare_features(self, X, fit=False):
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError(
+                "FTTransformer requires a pandas DataFrame."
+            )
 
+        cont_cols = [
+            c for c in X.columns
+            if c not in self.categorical_columns
+        ]
+
+        X_cont = X[cont_cols]
+        X_cat = X[self.categorical_columns]
+
+        # Continuous features
         if fit:
-            X = self.scaler.fit_transform(X)
+            X_cont = self.imputer.fit_transform(X_cont)
+            X_cont = self.scaler.fit_transform(X_cont)
         else:
-            X = self.scaler.transform(X)
+            X_cont = self.imputer.transform(X_cont)
+            X_cont = self.scaler.transform(X_cont)
 
-        return X.astype(np.float32)
+        # Categorical features
+        if len(self.categorical_columns) > 0:
+
+            if fit:
+                X_cat = self.cat_encoder.fit_transform(X_cat)
+                self.cat_cardinalities = [
+                    len(c)
+                    for c in self.cat_encoder.categories_
+                ]
+            else:
+                X_cat = self.cat_encoder.transform(X_cat)
+
+            X_cat = X_cat.astype(np.int64)
+
+        else:
+            X_cat = np.empty((len(X), 0), dtype=np.int64)
+            self.cat_cardinalities = []
+
+        return (
+            X_cont.astype(np.float32),
+            X_cat,
+        )
 
     def _remember_feature_names(self, X) -> None:
         if isinstance(X, pd.DataFrame):
@@ -151,8 +195,17 @@ class BaseTorchClassifier(BaseModel):
             return 1.0
         return negatives / positives
 
-    def _make_train_loader(self, X_train: np.ndarray, y_train: np.ndarray) -> DataLoader:
-        train_ds = TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train).unsqueeze(1))
+    def _make_train_loader(
+        self,
+        X_train_cont,
+        X_train_cat,
+        y_train,
+    ):
+        train_ds = TensorDataset(
+            torch.from_numpy(X_train_cont),
+            torch.from_numpy(X_train_cat),
+            torch.from_numpy(y_train).unsqueeze(1),
+        )
         if not self.use_weighted_sampler:
             return DataLoader(
                 train_ds,
@@ -192,29 +245,55 @@ class BaseTorchClassifier(BaseModel):
     # Training
     def fit(self, X_train, y_train, X_val=None, y_val=None, trial: Optional["optuna.trial.Trial"] = None):
         self._remember_feature_names(X_train)
-        X_train_np = self._to_numpy(X_train, fit=True)
+        # Debug missing values BEFORE scaling
+        if isinstance(X_train, pd.DataFrame):
+            missing = (
+                X_train.isna()
+                .sum()
+                .sort_values(ascending=False)
+            )
+        
+            print("\n===== Missing values in training features =====")
+            print(missing[missing > 0])
+        X_train_cont, X_train_cat = self._prepare_features(
+            X_train,
+            fit=True,
+        )
         y_train_np = np.asarray(y_train, dtype=np.float32)
 
-        self.input_dim = X_train_np.shape[1]
+        self.input_dim = X_train_cont.shape[1]
         self.model = self.build_model(self.input_dim).to(self.device)
 
-        train_loader = self._make_train_loader(X_train_np, y_train_np)
+        train_loader = self._make_train_loader(X_train_cont, X_train_cat, y_train_np)
 
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
         pos_weight_value = self._compute_pos_weight(y_train_np)
-        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight_value], device=self.device))
+
+        alpha = pos_weight_value / (1.0 + pos_weight_value)
+
+        # criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight_value], device=self.device))
+
+        criterion = FocalLoss( alpha= alpha, gamma= 2.0,)
 
         scheduler, step_per_batch = self._make_scheduler(optimizer, len(train_loader))
         scaler = torch.amp.GradScaler(enabled=self.use_amp)
 
         has_val = X_val is not None and y_val is not None
         if has_val:
-            X_val_np = self._to_numpy(X_val)
+            X_val_cont, X_val_cat = self._prepare_features(
+                X_val,
+                fit=False,
+            )
             y_val_np = np.asarray(y_val, dtype=np.float32)
-            
+            print("=== TRAIN ===")
+            print("NaN:", np.isnan(X_train_cont).sum())
+            print("Inf:", np.isinf(X_train_cont).sum())
+            print("Min:", np.nanmin(X_train_cont))
+            print("Max:", np.nanmax(X_train_cont))
             val_ds = TensorDataset(
-                torch.from_numpy(X_val_np),
+                torch.from_numpy(X_val_cont),
+                torch.from_numpy(X_val_cat),
                 torch.from_numpy(y_val_np).unsqueeze(1),
             )
 
@@ -242,13 +321,23 @@ class BaseTorchClassifier(BaseModel):
                 leave=False,
             )
 
-            for xb, yb in pbar:
-                xb, yb = xb.to(self.device, non_blocking=True), yb.to(self.device, non_blocking=True)
+            for xb_cont, xb_cat, yb in pbar:
+                xb_cont = xb_cont.to(self.device, non_blocking=True)
+                xb_cat = xb_cat.to(self.device, non_blocking=True)
+                yb = yb.to(self.device, non_blocking=True)
+
                 optimizer.zero_grad()
 
                 with torch.amp.autocast(device_type=self.device, enabled=self.use_amp):
-                    logits = self.model(xb, None)
+                    logits = self.model(xb_cont, xb_cat)
+                    if not torch.isfinite(logits).all():
+                        print(f"Epoch {epoch}")
+                        print("NaN logits:", torch.isnan(logits).sum().item())
+                        print("Inf logits:", torch.isinf(logits).sum().item())
+                        raise RuntimeError("Invalid logits")
                     loss = criterion(logits, yb)
+                    if not torch.isfinite(loss):
+                        raise RuntimeError(f"Loss became {loss}")
 
                 scaler.scale(loss).backward()
 
@@ -283,20 +372,21 @@ class BaseTorchClassifier(BaseModel):
                 val_probs_list = []
 
                 with torch.no_grad():
-                    for xb, yb in tqdm(
+                    for xb_cont, xb_cat, yb in tqdm(
                         val_loader,
                         desc="Validation",
                         leave=False,
                     ):
                     
-                        xb = xb.to(self.device, non_blocking=True)
+                        xb_cont = xb_cont.to(self.device, non_blocking=True)
+                        xb_cat = xb_cat.to(self.device, non_blocking=True)
                         yb = yb.to(self.device, non_blocking=True)
 
                         with torch.amp.autocast(
                             device_type=self.device,
                             enabled=self.use_amp,
                         ):
-                            logits = self.model(xb, None)
+                            logits = self.model(xb_cont, xb_cat)
                             loss = criterion(logits, yb)
 
                         val_losses.append(loss.item())
@@ -362,30 +452,36 @@ class BaseTorchClassifier(BaseModel):
     # Inference
     def predict_logits(self, X):
 
-        X_np = self._to_numpy(X)
-
+        X_cont, X_cat = self._prepare_features(
+            X,
+            fit=False,
+        )
+        
         loader = DataLoader(
-            TensorDataset(torch.from_numpy(X_np)),
+            TensorDataset(
+                torch.from_numpy(X_cont),
+                torch.from_numpy(X_cat),
+            ),
             batch_size=self.batch_size,
             shuffle=False,
             pin_memory=(self.device == "cuda"),
             num_workers=4,
             persistent_workers=True,
         )
-
+        
         outputs = []
-
+        
         self.model.eval()
-
+        
         with torch.no_grad():
-            for (xb,) in loader:
-
-                xb = xb.to(self.device, non_blocking=True)
-
-                logits = self.model(xb, None)
-
+            for xb_cont, xb_cat in loader:
+                xb_cont = xb_cont.to(self.device, non_blocking=True)
+                xb_cat = xb_cat.to(self.device, non_blocking=True)
+        
+                logits = self.model(xb_cont, xb_cat)
+        
                 outputs.append(logits.cpu())
-
+        
         return torch.cat(outputs).numpy().ravel()
 
     def predict_proba(self, X) -> np.ndarray:
@@ -414,6 +510,10 @@ class BaseTorchClassifier(BaseModel):
                 "feature_names": self.feature_names,
                 "params": self.get_params(),
                 "scaler": self.scaler,
+                "imputer": self.imputer,
+                "cat_encoder": self.cat_encoder,
+                "cat_cardinalities": self.cat_cardinalities,
+                "categorical_columns": self.categorical_columns,
             },
             path,
         )
@@ -423,6 +523,10 @@ class BaseTorchClassifier(BaseModel):
         self.input_dim = checkpoint["input_dim"]
         self.feature_names = checkpoint.get("feature_names")
         self.scaler = checkpoint["scaler"]
+        self.imputer = checkpoint["imputer"]
+        self.cat_encoder = checkpoint["cat_encoder"]
+        self.cat_cardinalities = checkpoint["cat_cardinalities"]
+        self.categorical_columns = checkpoint["categorical_columns"]
         self.model = self.build_model(self.input_dim).to(self.device)
         self.model.load_state_dict(checkpoint["state_dict"])
         self.model.eval()
