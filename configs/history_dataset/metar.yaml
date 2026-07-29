@@ -1,0 +1,10 @@
+_target_: src.data.history_dataset.HistoryDataset  
+data_dir: ${dataset.data_dir}  
+seq_features:
+  - metar_wind_speed_ms
+  - metar_temp_c
+  - metar_slp_hpa
+  - metar_wind_dir_sin
+  - metar_wind_dir_cos
+  - metar_hours_before_run
+max_len: 72

@@ -16,6 +16,10 @@ class ClassificationTrainer:
         self.dataset = None
         self.model = None
 
+        self.history_dataset = None
+        self.extra_train = None
+        self.extra_val = None
+
         self.X_train = None
         self.y_train = None
 
@@ -66,6 +70,17 @@ class ClassificationTrainer:
             self.metadata,
         ) = self.dataset.validation()
 
+        # Optional sequence/history branch — only wired up when the config
+        # includes a history_dataset section (e.g. for FTTransformerWithHistory
+        # runs). Absent for plain FTTransformerClassifier configs, so this is
+        # a no-op there.
+        history_cfg = self.cfg.get("history_dataset", None)
+        if history_cfg is not None:
+            print("Loading history dataset...")
+            self.history_dataset = instantiate(history_cfg)
+            self.extra_train = self.history_dataset.train(self.dataset)
+            self.extra_val = self.history_dataset.validation(self.dataset)
+
         print()
 
         self.dataset.summary()
@@ -81,6 +96,8 @@ class ClassificationTrainer:
             self.y_train,
             self.X_val,
             self.y_val,
+            extra_train=self.extra_train,
+            extra_val=self.extra_val,
         )
 
     def _validate(self):
@@ -92,7 +109,7 @@ class ClassificationTrainer:
         if hasattr(self.model, "predict_proba"):
         
             self.y_prob = self.model.predict_proba(
-                self.X_val
+                self.X_val, extra_test=self.extra_val
             )[:, 1]
         
             self.y_pred = (
@@ -102,7 +119,7 @@ class ClassificationTrainer:
         else:
         
             self.y_pred = self.model.predict(
-                self.X_val
+                self.X_val, extra_test=self.extra_val
             )
 
         self.metrics = ClassificationMetrics(

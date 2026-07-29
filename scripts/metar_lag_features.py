@@ -21,6 +21,7 @@ VALID_TIME_COL = "valid_time"
 WIND_COL = "metar_wind_speed_ms"
 TEMP_COL = "metar_temp_c"
 PRESSURE_COL = "metar_slp_hpa"
+WIND_DIR_COL = "metar_wind_dir_deg"          # new raw column
 
 INCLUDE_STALENESS_FEATURE = True
 
@@ -31,6 +32,9 @@ FEATURE_COLUMNS = [
     "metar_temp_mean_3h", "metar_temp_mean_6h",
     "metar_pressure_mean_6h", "metar_pressure_std_6h",
     "metar_wind_trend_6h", "metar_temp_trend_6h", "metar_pressure_trend_6h",
+    # circular wind-direction features — vector-averaged, not degree-averaged
+    "metar_wind_dir_sin_mean_3h", "metar_wind_dir_sin_mean_6h",
+    "metar_wind_dir_cos_mean_3h", "metar_wind_dir_cos_mean_6h",
 ]
 
 
@@ -51,18 +55,32 @@ def _safe_std(arr: np.ndarray) -> float:
     return float(np.std(valid, ddof=1))
 
 
+def add_wind_dir_components(df: pd.DataFrame) -> pd.DataFrame:
+    """Circular-encode wind direction. NaN direction (typically calm wind,
+    where METAR reports no direction) -> (0, 0): off the unit circle, so it's
+    distinguishable from any real direction once combined with wind speed."""
+    df = df.copy()
+    rad = np.deg2rad(df[WIND_DIR_COL])
+    df["metar_wind_dir_sin"] = np.sin(rad)
+    df["metar_wind_dir_cos"] = np.cos(rad)
+    nan_mask = df[WIND_DIR_COL].isna()
+    df.loc[nan_mask, ["metar_wind_dir_sin", "metar_wind_dir_cos"]] = 0.0
+    return df
+
+
 # Step 1 — unique METAR observation history per station
 
 def build_metar_history(df: pd.DataFrame) -> pd.DataFrame:
-    cols = [ICAO_COL, VALID_TIME_COL, WIND_COL, TEMP_COL, PRESSURE_COL]
-    return (
+    cols = [ICAO_COL, VALID_TIME_COL, WIND_COL, TEMP_COL, PRESSURE_COL, WIND_DIR_COL]
+    hist = (
         df[cols]
         .dropna(subset=[VALID_TIME_COL])
         .groupby([ICAO_COL, VALID_TIME_COL], as_index=False)
-        .agg({c: "first" for c in (WIND_COL, TEMP_COL, PRESSURE_COL)})
+        .agg({c: "first" for c in (WIND_COL, TEMP_COL, PRESSURE_COL, WIND_DIR_COL)})
         .sort_values([ICAO_COL, VALID_TIME_COL])
         .reset_index(drop=True)
     )
+    return add_wind_dir_components(hist)
 
 
 # Step 2 — leakage-safe windowed features via searchsorted, per station
@@ -73,6 +91,8 @@ def compute_features_for_station(
     wind: np.ndarray,
     temp: np.ndarray,
     pressure: np.ndarray,
+    wind_dir_sin: np.ndarray,
+    wind_dir_cos: np.ndarray,
 ) -> pd.DataFrame:
     run_times = run_times.astype("datetime64[ns]")
     t3 = run_times - np.timedelta64(3, "h")
@@ -92,6 +112,8 @@ def compute_features_for_station(
         w3, w6, wp = wind[a:e], wind[b:e], wind[b:a]
         t3a, t6a, tp = temp[a:e], temp[b:e], temp[b:a]
         p3, p6, pp = pressure[a:e], pressure[b:e], pressure[b:a]
+        ds3, ds6 = wind_dir_sin[a:e], wind_dir_sin[b:e]
+        dc3, dc6 = wind_dir_cos[a:e], wind_dir_cos[b:e]
 
         wm3, wm6, wmp = _safe_mean(w3), _safe_mean(w6), _safe_mean(wp)
         tm3, tm6, tmp = _safe_mean(t3a), _safe_mean(t6a), _safe_mean(tp)
@@ -114,6 +136,13 @@ def compute_features_for_station(
         out["metar_wind_trend_6h"][i] = wm3 - wmp
         out["metar_temp_trend_6h"][i] = tm3 - tmp
         out["metar_pressure_trend_6h"][i] = pm3 - pmp
+
+        # Vector (circular) mean: average sin and cos independently. Do NOT
+        # average raw degrees — 350° and 10° would wrongly average to 180°.
+        out["metar_wind_dir_sin_mean_3h"][i] = _safe_mean(ds3)
+        out["metar_wind_dir_sin_mean_6h"][i] = _safe_mean(ds6)
+        out["metar_wind_dir_cos_mean_3h"][i] = _safe_mean(dc3)
+        out["metar_wind_dir_cos_mean_6h"][i] = _safe_mean(dc6)
 
         if e > 0:
             hours_since_last_obs[i] = (run_times[i] - valid_times[e - 1]) / np.timedelta64(1, "h")
@@ -151,6 +180,8 @@ def compute_all_rolling_features(df: pd.DataFrame, hist: pd.DataFrame) -> pd.Dat
                 station_hist[WIND_COL].to_numpy(float),
                 station_hist[TEMP_COL].to_numpy(float),
                 station_hist[PRESSURE_COL].to_numpy(float),
+                station_hist["metar_wind_dir_sin"].to_numpy(float),
+                station_hist["metar_wind_dir_cos"].to_numpy(float),
             )
 
         f.insert(0, ICAO_COL, icao)

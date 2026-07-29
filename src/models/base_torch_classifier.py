@@ -157,6 +157,11 @@ class BaseTorchClassifier(BaseModel):
             X_cat,
         )
 
+    def _prepare_extra_inputs(self, extra, fit: bool = False):
+        """Override in subclasses that need sequence/other non-tabular inputs.
+        Must return a tuple of np.ndarray, same length/order every call."""
+        return ()
+
     def _remember_feature_names(self, X) -> None:
         if isinstance(X, pd.DataFrame):
             self.feature_names = list(X.columns)
@@ -200,10 +205,12 @@ class BaseTorchClassifier(BaseModel):
         X_train_cont,
         X_train_cat,
         y_train,
+        extra_arrays=(),
     ):
         train_ds = TensorDataset(
             torch.from_numpy(X_train_cont),
             torch.from_numpy(X_train_cat),
+            *[torch.from_numpy(a) for a in extra_arrays],
             torch.from_numpy(y_train).unsqueeze(1),
         )
         if not self.use_weighted_sampler:
@@ -228,6 +235,33 @@ class BaseTorchClassifier(BaseModel):
         )
         return DataLoader(train_ds, batch_size=self.batch_size, sampler=sampler, pin_memory=(self.device == "cuda"), num_workers=4, persistent_workers=True,)
 
+    def _make_eval_loader(self, X_cont, X_cat, y=None, extra_arrays=(), shuffle=False):
+        """Shared by the validation loop and predict_logits — same tensor
+        ordering as _make_train_loader (cont, cat, *extra, [y])."""
+        tensors = [torch.from_numpy(X_cont), torch.from_numpy(X_cat)]
+        tensors.extend(torch.from_numpy(a) for a in extra_arrays)
+        if y is not None:
+            tensors.append(torch.from_numpy(y).unsqueeze(1))
+        ds = TensorDataset(*tensors)
+        return DataLoader(
+            ds,
+            batch_size=self.batch_size,
+            shuffle=shuffle,
+            pin_memory=(self.device == "cuda"),
+            num_workers=4,
+            persistent_workers=True,
+        )
+
+    # Persistence hooks — subclasses that carry extra fit-time state
+    def _extra_state(self) -> dict:
+        """Override to include extra fitted objects (scalers, encoders, etc.)
+        in the checkpoint. Must be picklable."""
+        return {}
+
+    def _load_extra_state(self, state: dict) -> None:
+        """Override to restore whatever _extra_state() returned."""
+        pass
+
     # Metrics
     @staticmethod
     def _compute_metrics(y_true: np.ndarray, probs: np.ndarray, threshold: float) -> Dict[str, float]:
@@ -243,28 +277,18 @@ class BaseTorchClassifier(BaseModel):
         return value if self.monitor_metric in LOWER_IS_BETTER else -value
 
     # Training
-    def fit(self, X_train, y_train, X_val=None, y_val=None, trial: Optional["optuna.trial.Trial"] = None):
+    def fit(self, X_train, y_train, X_val=None, y_val=None, extra_train=None, extra_val=None, trial: Optional["optuna.trial.Trial"] = None):
         self._remember_feature_names(X_train)
-        # Debug missing values BEFORE scaling
-        if isinstance(X_train, pd.DataFrame):
-            missing = (
-                X_train.isna()
-                .sum()
-                .sort_values(ascending=False)
-            )
-        
-            print("\n===== Missing values in training features =====")
-            print(missing[missing > 0])
-        X_train_cont, X_train_cat = self._prepare_features(
-            X_train,
-            fit=True,
-        )
+
+        X_train_cont, X_train_cat = self._prepare_features( X_train, fit=True)
+        extra_train_arrays = self._prepare_extra_inputs(extra_train, fit=True)
+
         y_train_np = np.asarray(y_train, dtype=np.float32)
 
         self.input_dim = X_train_cont.shape[1]
         self.model = self.build_model(self.input_dim).to(self.device)
 
-        train_loader = self._make_train_loader(X_train_cont, X_train_cat, y_train_np)
+        train_loader = self._make_train_loader(X_train_cont, X_train_cat, y_train_np, extra_train_arrays)
 
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
@@ -285,23 +309,15 @@ class BaseTorchClassifier(BaseModel):
                 X_val,
                 fit=False,
             )
+            extra_val_arrays = self._prepare_extra_inputs(extra_val, fit=False)
             y_val_np = np.asarray(y_val, dtype=np.float32)
             print("=== TRAIN ===")
             print("NaN:", np.isnan(X_train_cont).sum())
             print("Inf:", np.isinf(X_train_cont).sum())
             print("Min:", np.nanmin(X_train_cont))
             print("Max:", np.nanmax(X_train_cont))
-            val_ds = TensorDataset(
-                torch.from_numpy(X_val_cont),
-                torch.from_numpy(X_val_cat),
-                torch.from_numpy(y_val_np).unsqueeze(1),
-            )
-
-            val_loader = DataLoader(
-                val_ds,
-                batch_size=self.batch_size,
-                shuffle=False,
-                pin_memory=(self.device == "cuda"),
+            val_loader = self._make_eval_loader(
+                X_val_cont, X_val_cat, y=y_val_np, extra_arrays=extra_val_arrays, shuffle=False
             )
         elif trial is not None:
             logger.warning("trial was passed to fit() but no validation data was given; pruning is disabled.")
@@ -321,15 +337,15 @@ class BaseTorchClassifier(BaseModel):
                 leave=False,
             )
 
-            for xb_cont, xb_cat, yb in pbar:
-                xb_cont = xb_cont.to(self.device, non_blocking=True)
-                xb_cat = xb_cat.to(self.device, non_blocking=True)
+            for batch in pbar:
+                *inputs, yb = batch
+                inputs = [t.to(self.device, non_blocking=True) for t in inputs]
                 yb = yb.to(self.device, non_blocking=True)
 
                 optimizer.zero_grad()
 
                 with torch.amp.autocast(device_type=self.device, enabled=self.use_amp):
-                    logits = self.model(xb_cont, xb_cat)
+                    logits = self.model(*inputs)
                     if not torch.isfinite(logits).all():
                         print(f"Epoch {epoch}")
                         print("NaN logits:", torch.isnan(logits).sum().item())
@@ -372,21 +388,20 @@ class BaseTorchClassifier(BaseModel):
                 val_probs_list = []
 
                 with torch.no_grad():
-                    for xb_cont, xb_cat, yb in tqdm(
+                    for batch in tqdm(
                         val_loader,
                         desc="Validation",
                         leave=False,
                     ):
-                    
-                        xb_cont = xb_cont.to(self.device, non_blocking=True)
-                        xb_cat = xb_cat.to(self.device, non_blocking=True)
+                        *inputs, yb = batch
+                        inputs = [t.to(self.device, non_blocking=True) for t in inputs]
                         yb = yb.to(self.device, non_blocking=True)
 
                         with torch.amp.autocast(
                             device_type=self.device,
                             enabled=self.use_amp,
                         ):
-                            logits = self.model(xb_cont, xb_cat)
+                            logits = self.model(*inputs)
                             loss = criterion(logits, yb)
 
                         val_losses.append(loss.item())
@@ -450,47 +465,39 @@ class BaseTorchClassifier(BaseModel):
         return self
 
     # Inference
-    def predict_logits(self, X):
+    def predict_logits(self, X, extra_test=None):
 
         X_cont, X_cat = self._prepare_features(
             X,
             fit=False,
         )
-        
-        loader = DataLoader(
-            TensorDataset(
-                torch.from_numpy(X_cont),
-                torch.from_numpy(X_cat),
-            ),
-            batch_size=self.batch_size,
-            shuffle=False,
-            pin_memory=(self.device == "cuda"),
-            num_workers=4,
-            persistent_workers=True,
+        extra_test_arrays = self._prepare_extra_inputs(extra_test, fit=False)
+
+        loader = self._make_eval_loader(
+            X_cont, X_cat, y=None, extra_arrays=extra_test_arrays, shuffle=False
         )
-        
+
         outputs = []
-        
+
         self.model.eval()
-        
+
         with torch.no_grad():
-            for xb_cont, xb_cat in loader:
-                xb_cont = xb_cont.to(self.device, non_blocking=True)
-                xb_cat = xb_cat.to(self.device, non_blocking=True)
-        
-                logits = self.model(xb_cont, xb_cat)
-        
+            for batch in loader:
+                inputs = [t.to(self.device, non_blocking=True) for t in batch]
+
+                logits = self.model(*inputs)
+
                 outputs.append(logits.cpu())
-        
+
         return torch.cat(outputs).numpy().ravel()
 
-    def predict_proba(self, X) -> np.ndarray:
-        probs = 1.0 / (1.0 + np.exp(-self.predict_logits(X)))
+    def predict_proba(self, X, extra_test=None) -> np.ndarray:
+        probs = 1.0 / (1.0 + np.exp(-self.predict_logits(X, extra_test=extra_test)))
         return np.column_stack([1 - probs, probs])
 
-    def predict(self, X, threshold: Optional[float] = None) -> np.ndarray:
+    def predict(self, X, threshold: Optional[float] = None, extra_test=None) -> np.ndarray:
         threshold = self.probability_threshold if threshold is None else threshold
-        return (self.predict_proba(X)[:, 1] >= threshold).astype(int)
+        return (self.predict_proba(X, extra_test=extra_test)[:, 1] >= threshold).astype(int)
 
     # ClassificationPlots integration
     def evals_result(self) -> Dict[str, Dict[str, List[float]]]:
@@ -514,6 +521,7 @@ class BaseTorchClassifier(BaseModel):
                 "cat_encoder": self.cat_encoder,
                 "cat_cardinalities": self.cat_cardinalities,
                 "categorical_columns": self.categorical_columns,
+                "extra_state": self._extra_state(),
             },
             path,
         )
@@ -527,8 +535,8 @@ class BaseTorchClassifier(BaseModel):
         self.cat_encoder = checkpoint["cat_encoder"]
         self.cat_cardinalities = checkpoint["cat_cardinalities"]
         self.categorical_columns = checkpoint["categorical_columns"]
+        self._load_extra_state(checkpoint.get("extra_state", {}))
         self.model = self.build_model(self.input_dim).to(self.device)
         self.model.load_state_dict(checkpoint["state_dict"])
         self.model.eval()
         return self
-

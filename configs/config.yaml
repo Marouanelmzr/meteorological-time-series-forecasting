@@ -4,6 +4,7 @@ defaults:
   - trainer: default
   - evaluation: classification
   - features: arome
+  - history_dataset: metar
   - wandb: default
   - paths: default
   - _self_
