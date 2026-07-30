@@ -1,9 +1,12 @@
 from pathlib import Path
+import joblib
 
 from hydra.utils import to_absolute_path
 
 import numpy as np
 import pandas as pd
+
+from sklearn.preprocessing import StandardScaler
 
 
 class HistoryDataset:
@@ -15,6 +18,9 @@ class HistoryDataset:
         self.data_dir = Path(to_absolute_path(str(data_dir)))
         self.seq_features = seq_features
         self.max_len = max_len
+
+        scaler_path = self.data_dir / "history_scaler.joblib"
+        self.scaler: StandardScaler = joblib.load(scaler_path)
 
     @staticmethod
     def _pair_id(df: pd.DataFrame) -> np.ndarray:
@@ -44,7 +50,23 @@ class HistoryDataset:
             )
 
         idx = np.array([lookup[pid] for pid in row_pair_id])
-        return seq[idx].astype(np.float32), mask[idx].astype(np.float32)
+        
+        seq = seq[idx].astype(np.float32)
+        mask = mask[idx].astype(bool)
+
+        B, T, F = seq.shape
+
+        flat = seq.reshape(-1, F)
+        valid = mask.reshape(-1)
+
+        flat[valid] = self.scaler.transform(flat[valid])
+
+        seq = flat.reshape(B, T, F)
+
+        # keep padded timesteps at zero
+        seq[~mask] = 0.0
+
+        return seq, mask.astype(np.float32)
 
     def train(self, dataset: "Dataset"):
         return self._load("train_history.npz", dataset.train_df)

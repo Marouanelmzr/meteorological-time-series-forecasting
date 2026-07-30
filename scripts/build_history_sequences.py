@@ -2,6 +2,8 @@ from pathlib import Path
 import sys
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
+import joblib
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -95,6 +97,16 @@ def main():
     for name in ["train", "val", "test"]:
         df = pd.read_parquet(splits_dir / f"{name}.parquet")
         seq, mask, pair_id = build_split_sequences(df, hist, MAX_LEN)
+
+        if name == "train":
+            flat = seq.reshape(-1, seq.shape[-1]).astype(np.float32)
+            valid = mask.reshape(-1).astype(bool)
+
+            scaler = StandardScaler()
+            scaler.fit(flat[valid])
+
+            joblib.dump(scaler, out_dir / "history_scaler.joblib")
+
         np.savez(
             out_dir / f"{name}_history.npz",
             seq=seq, mask=mask, pair_id=pair_id,

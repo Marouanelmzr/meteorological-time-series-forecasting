@@ -20,7 +20,7 @@ attention_dropout: 0.2
 ffn_dropout: 0.1
 residual_dropout: 0.0
 
-tab_embed_dim: 64
+tab_embed_dim: 128
 seq_input_dim: 6        # wind, temp, pressure, wind_dir_sin, wind_dir_cos, hours_before_run
 seq_hidden_dim: 64
 seq_num_layers: 1
