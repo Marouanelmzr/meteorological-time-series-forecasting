@@ -1,6 +1,6 @@
 positive_label: 1
 
-probability_threshold: 0.5
+probability_threshold: 0.7
 
 compute_curves: true
 

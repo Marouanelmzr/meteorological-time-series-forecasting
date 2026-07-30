@@ -50,14 +50,25 @@ class CrossAttentionFusion(nn.Module):
 
         q = self.query(tab_emb).unsqueeze(1)
 
+        key_padding_mask = ~mask.bool()
+        all_masked = mask.sum(dim=1) == 0
+        if all_masked.any():
+            key_padding_mask = key_padding_mask.clone()
+            key_padding_mask[all_masked, 0] = False  # unmask one dummy key so softmax isn't all -inf
+
         out, _ = self.attn(
             query=q,
             key=seq_outputs,
             value=seq_outputs,
-            key_padding_mask=~mask.bool(),
+            key_padding_mask=key_padding_mask,
         )
+        out = out.squeeze(1)
 
-        return out.squeeze(1)
+        if all_masked.any():
+            out = out.clone()
+            out[all_masked] = 0.0  # no real history -> zero embedding, not attention over padding
+
+        return out
 
 
 class SequenceEncoder(nn.Module):
