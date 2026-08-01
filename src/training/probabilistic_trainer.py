@@ -17,13 +17,19 @@ class ProbabilisticTrainer:
         self.logger = logger
 
         self.dataset = None
+        self.history_dataset = None
         self.model = None
 
         self.X_train = None
         self.y_train = None
+        self.seq_train = None
+        self.mask_train = None
 
         self.X_val = None
         self.y_val = None
+        self.seq_val = None
+        self.mask_val = None
+
         self.metadata = None
 
         self.y_pred = None
@@ -56,23 +62,35 @@ class ProbabilisticTrainer:
         print("Loading dataset...")
 
         self.dataset = instantiate(self.cfg.dataset)
-
+        self.history_dataset = instantiate(self.cfg.history_dataset)
+    
         print("Loading model...")
 
         self.model = instantiate(self.cfg.model)
-
+    
+        seq_train_full, mask_train_full = self.history_dataset.train(self.dataset)
+        seq_val_full, mask_val_full = self.history_dataset.validation(self.dataset)
+    
         (
             self.X_train,
             self.y_train,
             _,
         ) = self.dataset.train_positive()
-
+    
         (
             self.X_val,
             self.y_val,
             self.metadata,
         ) = self.dataset.validation_positive()
-
+    
+        train_mask = (self.dataset.train_df[self.dataset.target] > 0).to_numpy()
+        val_mask = (self.dataset.val_df[self.dataset.target] > 0).to_numpy()
+    
+        self.seq_train = seq_train_full[train_mask]
+        self.mask_train = mask_train_full[train_mask]
+        self.seq_val = seq_val_full[val_mask]
+        self.mask_val = mask_val_full[val_mask]
+    
         print()
 
         self.dataset.summary()
@@ -89,6 +107,8 @@ class ProbabilisticTrainer:
             self.y_train,
             self.X_val,
             self.y_val,
+            extra_train=(self.seq_train, self.mask_train),
+            extra_val=(self.seq_val, self.mask_val),
         )
 
 
@@ -97,11 +117,15 @@ class ProbabilisticTrainer:
         print("Running validation...")
 
 
-        self.y_pred = self.model.predict(self.X_val)
+        self.y_pred = self.model.predict(
+            self.X_val,
+            extra_test=(self.seq_val, self.mask_val),
+        )
 
         # Predictive distribution
         self.pred_dist = self.model.predict_distribution(
-            self.X_val
+            self.X_val,
+            extra_test=(self.seq_val, self.mask_val),
         )
 
         # Regression metrics

@@ -35,6 +35,7 @@ def main(cfg: DictConfig):
     trainer = RegressionTrainer(
         cfg=cfg,
         logger=logger,
+        positive_only=cfg.trainer.positive_only,
     )
 
     trainer.train()

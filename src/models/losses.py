@@ -33,3 +33,24 @@ class FocalLoss(nn.Module):
             return loss.sum()
 
         return loss
+
+
+class BetaGaussianNLLLoss(nn.Module):
+    def __init__(self, beta=0.5, eps=1e-6):
+        super().__init__()
+        self.beta = beta
+        self.eps = eps
+
+    def forward(self, mean, target, var):
+        var = var.clamp(min=self.eps)
+
+        nll = 0.5 * (
+            torch.log(var)
+            + (target - mean) ** 2 / var
+        )
+
+        if self.beta > 0:
+            weight = var.detach() ** self.beta
+            nll = weight * nll
+
+        return nll.mean()

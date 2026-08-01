@@ -5,3 +5,5 @@ save_predictions: true
 save_plots: true
 
 verbose: true
+
+positive_only: true

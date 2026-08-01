@@ -94,7 +94,7 @@ class FusionHead(nn.Module):
             nn.Linear(tab_dim + seq_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, 1),
+            nn.Linear(hidden_dim, 2),   # was: nn.Linear(hidden_dim, 1) — (mu, log_var)
         )
 
     def forward(self, tab_emb: torch.Tensor, seq_emb: torch.Tensor) -> torch.Tensor:
