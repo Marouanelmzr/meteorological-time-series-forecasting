@@ -1,6 +1,6 @@
 _target_: src.models.regression.ft_transformer_history.FTTransformerWithHistoryRegressor
 
-lr: 3e-4
+lr: 0.0002513045354320348 #3e-4
 batch_size: 1024
 epochs: 100
 patience: 15
@@ -9,24 +9,24 @@ monitor_metric: mae
 
 scheduler: cosine # plateau
 
-weight_decay: 1e-5
+weight_decay: 0.0006487477066058681 #1e-5
 
 d_token: 192
-n_blocks: 3
+n_blocks: 2
 attention_n_heads: 8
-ffn_d_hidden_multiplier: 4.0
+ffn_d_hidden_multiplier: 2.0
 
-attention_dropout: 0.2
-ffn_dropout: 0.1
-residual_dropout: 0.1
+attention_dropout: 0.19578110411102523
+ffn_dropout: 0.3942601816442403
+residual_dropout: 0.04841105430230008
 
 tab_embed_dim: 128
 seq_input_dim: 6        # wind, temp, pressure, wind_dir_sin, wind_dir_cos, hours_before_run
-seq_hidden_dim: 128
+seq_hidden_dim: 64 # 128
 seq_num_layers: 2 # 1
-fusion_hidden_dim: 128 # 64
-fusion_dropout: 0.1
+fusion_hidden_dim: 256 #128 # 64
+fusion_dropout: 0.12831202598869434 # 0.1
 
-loss_fn: gaussian_nll
+loss_fn: student_t # gaussian_nll
 
 categorical_columns: ${features.categorical_columns}

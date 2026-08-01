@@ -10,6 +10,7 @@ import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
+import torch.nn.functional as F
 
 from sklearn.preprocessing import StandardScaler, OrdinalEncoder
 from sklearn.impute import SimpleImputer
@@ -17,7 +18,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from tqdm.auto import tqdm
 from scipy.stats import norm 
 
-from src.models.losses import BetaGaussianNLLLoss
+from src.models.losses import BetaGaussianNLLLoss,StudentTLoss
 from src.models.base_model import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ _LOSS_FNS = {
     "smooth_l1": nn.SmoothL1Loss,
     "gaussian_nll": lambda: nn.GaussianNLLLoss(eps=1e-6),
     "beta_nll": lambda: BetaGaussianNLLLoss(beta=0.5),
+    "student_t": lambda: StudentTLoss(),
 }
 
 
@@ -227,6 +229,14 @@ class BaseTorchRegressor(BaseModel):
        var = torch.exp(log_var.clamp(min=-10, max=10))
        return mu, var
 
+    def _split_student_t(self, preds: torch.Tensor):
+        mu = preds[:, 0:1]
+        log_sigma = preds[:, 1:2]
+        log_nu = preds[:, 2:3]
+        sigma = F.softplus(log_sigma) + 1e-6
+        nu = 2.0 + F.softplus(log_nu) 
+        return mu, sigma, nu
+
     def _monitor_value(self, val_loss: float, val_metrics: Dict[str, float]) -> float:
         if self.monitor_metric == "val_loss":
             return val_loss
@@ -290,6 +300,9 @@ class BaseTorchRegressor(BaseModel):
                     if self.loss_fn in ["gaussian_nll", "beta_nll"]:
                         mu, var = self._split_distributional(preds)
                         loss = criterion(mu, yb, var)
+                    elif self.loss_fn == "student_t":
+                        mu, sigma, nu = self._split_student_t(preds)
+                        loss = criterion(mu, yb, sigma, nu)
                     else:
                         loss = criterion(preds, yb)
                     if not torch.isfinite(loss):
@@ -327,9 +340,13 @@ class BaseTorchRegressor(BaseModel):
 
                         with torch.amp.autocast(device_type=self.device, enabled=self.use_amp):
                             preds = self.model(*inputs)
-                            if self.loss_fn in ["gaussian_nll", "beta_nll"]:
+                            if self.loss_fn in ("gaussian_nll", "beta_nll"):
                                 mu, var = self._split_distributional(preds)
                                 loss = criterion(mu, yb, var)
+                                preds_for_metrics = mu
+                            elif self.loss_fn == "student_t":
+                                mu, sigma, nu = self._split_student_t(preds)
+                                loss = criterion(mu, yb, sigma, nu)
                                 preds_for_metrics = mu
                             else:
                                 loss = criterion(preds, yb)
@@ -408,30 +425,46 @@ class BaseTorchRegressor(BaseModel):
                 preds = self.model(*inputs)
                 if self.loss_fn in ["gaussian_nll", "beta_nll"]:
                     preds, _ = self._split_distributional(preds)
+                elif self.loss_fn == "student_t":
+                    preds, _, _ = self._split_student_t(preds)
                 outputs.append(preds.cpu())
 
         return torch.cat(outputs).numpy().ravel()
 
     def predict_distribution(self, X, extra_test=None):
-        """Returns a frozen scipy.stats distribution. Only valid when loss_fn=='gaussian_nll'."""
-        if self.loss_fn not in ["gaussian_nll", "beta_nll"]:
-            raise ValueError("predict_distribution() requires loss_fn='gaussian_nll'.")
+        if self.loss_fn not in ("gaussian_nll", "beta_nll", "student_t"):
+            raise ValueError(
+                "predict_distribution() requires loss_fn in "
+                "{'gaussian_nll','beta_nll','student_t'}."
+            )
 
         X_cont, X_cat = self._prepare_features(X, fit=False)
         extra_test_arrays = self._prepare_extra_inputs(extra_test, fit=False)
         loader = self._make_eval_loader(X_cont, X_cat, y=None, extra_arrays=extra_test_arrays, shuffle=False)
 
-        mus, sigmas = [], []
         self.model.eval()
+        if self.loss_fn == "student_t":
+            from scipy.stats import t as student_t
+            mus, sigmas, nus = [], [], []
+            with torch.no_grad():
+                for batch in loader:
+                    inputs = [t.to(self.device, non_blocking=True) for t in batch]
+                    preds = self.model(*inputs)
+                    mu, sigma, nu = self._split_student_t(preds)
+                    mus.append(mu.cpu()); sigmas.append(sigma.cpu()); nus.append(nu.cpu())
+            mu = torch.cat(mus).numpy().ravel().astype(np.float64)
+            sigma = torch.cat(sigmas).numpy().ravel().astype(np.float64)
+            nu = torch.cat(nus).numpy().ravel().astype(np.float64)
+            return student_t(df=nu, loc=mu, scale=sigma)
 
+        # existing gaussian_nll / beta_nll branch unchanged
+        mus, sigmas = [], []
         with torch.no_grad():
             for batch in loader:
                 inputs = [t.to(self.device, non_blocking=True) for t in batch]
                 preds = self.model(*inputs)
                 mu, var = self._split_distributional(preds)
-                mus.append(mu.cpu())
-                sigmas.append(var.sqrt().cpu())
-
+                mus.append(mu.cpu()); sigmas.append(var.sqrt().cpu())
         mu = torch.cat(mus).numpy().ravel()
         std = torch.cat(sigmas).numpy().ravel()
         return norm(loc=mu, scale=std)

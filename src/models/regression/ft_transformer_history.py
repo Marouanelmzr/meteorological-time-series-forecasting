@@ -8,6 +8,7 @@ from sklearn.impute import SimpleImputer
 from src.models.architectures.ft_transformer_history import FTTransformerWithHistory
 from src.models.base_torch_regressor import BaseTorchRegressor
 
+_DIST_OUT_DIM = {"gaussian_nll": 2, "beta_nll": 2, "student_t": 3}
 
 class FTTransformerWithHistoryRegressor(BaseTorchRegressor):
 
@@ -49,7 +50,10 @@ class FTTransformerWithHistoryRegressor(BaseTorchRegressor):
         self.seq_imputer: Optional[SimpleImputer] = None
         self.seq_scaler: Optional[StandardScaler] = None
 
+
     def build_model(self, input_dim: int) -> nn.Module:
+
+        out_dim = _DIST_OUT_DIM.get(self.loss_fn, 1)
 
         return FTTransformerWithHistory(
             n_cont_features=input_dim,
@@ -69,6 +73,7 @@ class FTTransformerWithHistoryRegressor(BaseTorchRegressor):
             seq_num_layers=self.seq_num_layers,
             fusion_hidden_dim=self.fusion_hidden_dim,
             fusion_dropout=self.fusion_dropout,
+            out_dim=out_dim,
         )
 
     def _prepare_extra_inputs(self, extra, fit: bool = False):

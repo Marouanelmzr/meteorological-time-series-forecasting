@@ -88,13 +88,13 @@ class SequenceEncoder(nn.Module):
 
 
 class FusionHead(nn.Module):
-    def __init__(self, tab_dim: int, seq_dim: int, hidden_dim: int = 128, dropout: float = 0.1):
+    def __init__(self, tab_dim: int, seq_dim: int, hidden_dim: int = 128, dropout: float = 0.1, out_dim: int = 2):  # out_dim=2 for (mu, log_var)
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(tab_dim + seq_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, 2),   # was: nn.Linear(hidden_dim, 1) — (mu, log_var)
+            nn.Linear(hidden_dim, out_dim),
         )
 
     def forward(self, tab_emb: torch.Tensor, seq_emb: torch.Tensor) -> torch.Tensor:
@@ -113,6 +113,7 @@ class FTTransformerWithHistory(nn.Module):
         seq_num_layers: int,
         fusion_hidden_dim: int,
         fusion_dropout: float,
+        out_dim: int,
         # seq_attn_dim: int = 64,
     ):
         super().__init__()
@@ -127,7 +128,7 @@ class FTTransformerWithHistory(nn.Module):
         )
         self.cross_attention = CrossAttentionFusion( tab_dim=tab_embed_dim, seq_dim=seq_hidden_dim,)
         self.fusion_head = FusionHead(
-            tab_embed_dim, seq_hidden_dim, fusion_hidden_dim, fusion_dropout
+            tab_embed_dim, seq_hidden_dim, fusion_hidden_dim, fusion_dropout, out_dim
         )
 
     def forward(self, x_cont, x_cat, seq, seq_mask):

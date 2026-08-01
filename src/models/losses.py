@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -54,3 +55,23 @@ class BetaGaussianNLLLoss(nn.Module):
             nll = weight * nll
 
         return nll.mean()
+
+
+class StudentTLoss(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, mu, target, sigma, nu):
+
+        z = (target - mu) / sigma
+
+        loss = (
+            torch.lgamma((nu + 1) / 2)
+            - torch.lgamma(nu / 2)
+            - 0.5 * torch.log(nu * math.pi)
+            - torch.log(sigma)
+            - ((nu + 1) / 2) * torch.log1p(z ** 2 / nu)
+        )
+
+        return -loss.mean()
